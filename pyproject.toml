@@ -1,0 +1,18 @@
+[project]
+name = "payswitch-cs-dataml"
+version = "0.1.0"
+description = "PaySwitch Credit Scoring ML Training and Inference System"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2,<3",
+    "numpy>=1.26,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
