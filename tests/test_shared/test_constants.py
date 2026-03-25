@@ -41,17 +41,18 @@ class TestPdBoundaries:
         for i in range(len(PD_RISK_TIER_BOUNDARIES) - 1):
             assert PD_RISK_TIER_BOUNDARIES[i][1] == PD_RISK_TIER_BOUNDARIES[i + 1][0]
 
-    def test_five_risk_tiers(self):
-        assert len(PD_RISK_TIER_BOUNDARIES) == 5
+    def test_six_risk_tiers(self):
+        assert len(PD_RISK_TIER_BOUNDARIES) == 6
 
 
 class TestServiceBusTopics:
     def test_total_topic_count(self):
-        assert len(ServiceBusTopic) == 14  # 7 training + 7 inference
+        assert len(ServiceBusTopic) == 15  # 8 training + 7 inference
 
     def test_training_topics_exist(self):
         assert ServiceBusTopic.TRAINING_DATA_READY.value == "training-data-ready"
-        assert ServiceBusTopic.ALL_TRAINING_COMPLETE.value == "all-training-complete"
+        assert ServiceBusTopic.MODEL_TRAINING_STARTED.value == "model-training-started"
+        assert ServiceBusTopic.MODEL_TRAINING_COMPLETED.value == "model-training-completed"
 
     def test_inference_topics_exist(self):
         assert ServiceBusTopic.INFERENCE_REQUEST.value == "inference-request"

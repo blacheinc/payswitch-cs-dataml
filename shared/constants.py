@@ -13,19 +13,21 @@ from enum import Enum
 class RiskTier(str, Enum):
     VERY_LOW = "VERY_LOW"
     LOW = "LOW"
+    LOW_MEDIUM = "LOW_MEDIUM"
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
     VERY_HIGH = "VERY_HIGH"
 
 
 # PD boundaries: (lower_inclusive, upper_exclusive) → RiskTier
-# Ordered from lowest risk to highest risk
+# Per Section 4.2 of Credit Scoring Engine Model Parameters document
 PD_RISK_TIER_BOUNDARIES: list[tuple[float, float, RiskTier]] = [
     (0.00, 0.05, RiskTier.VERY_LOW),
     (0.05, 0.10, RiskTier.LOW),
-    (0.10, 0.20, RiskTier.MEDIUM),
-    (0.20, 0.35, RiskTier.HIGH),
-    (0.35, float("inf"), RiskTier.VERY_HIGH),
+    (0.10, 0.15, RiskTier.LOW_MEDIUM),
+    (0.15, 0.20, RiskTier.MEDIUM),
+    (0.20, 0.40, RiskTier.HIGH),
+    (0.40, float("inf"), RiskTier.VERY_HIGH),
 ]
 
 
@@ -68,10 +70,13 @@ class LoanTier(str, Enum):
     PREMIUM = "PREMIUM"
 
 
-# Loan amount boundaries per tier (GHS)
+# Loan tier boundaries (GHS) per Section 4.1 of PDF
 LOAN_TIER_BOUNDARIES: list[tuple[float, float, LoanTier]] = [
-    (500.0, 2500.0, LoanTier.MICRO),
-    (2500.0, 10000.0, LoanTier.SMALL),
+    (0.0, 5000.0, LoanTier.MICRO),
+    (5000.0, 25000.0, LoanTier.SMALL),
+    (25000.0, 100000.0, LoanTier.MEDIUM),
+    (100000.0, 250000.0, LoanTier.LARGE),
+    (250000.0, float("inf"), LoanTier.PREMIUM),
 ]
 
 # Absolute caps for model output
@@ -98,7 +103,7 @@ INCOME_TIER_LABELS: dict[int, str] = {
 
 # ── Score Grades ────────────────────────────────────────────────────────────
 
-VALID_SCORE_GRADES: list[str] = ["A", "B", "C", "D", "E"]
+VALID_SCORE_GRADES: list[str] = ["A", "B", "C", "D", "E", "F"]
 
 
 # ── Reason Codes (R01-R10) ──────────────────────────────────────────────────
@@ -163,22 +168,23 @@ MAX_SHAP_FEATURES: int = 5
 
 class ServiceBusTopic(str, Enum):
     # Training topics
-    TRAINING_DATA_READY = "training-data-ready"
-    CREDIT_RISK_TRAIN = "credit-risk-train"
-    FRAUD_DETECTION_TRAIN = "fraud-detection-train"
-    LOAN_AMOUNT_TRAIN = "loan-amount-train"
-    INCOME_VERIFICATION_TRAIN = "income-verification-train"
-    MODEL_TRAINING_COMPLETE = "model-training-complete"
-    ALL_TRAINING_COMPLETE = "all-training-complete"
+    TRAINING_DATA_READY = "training-data-ready"              # New — DE → Orchestrator
+    MODEL_TRAINING_STARTED = "model-training-started"        # Existing — Orchestrator → Backend
+    CREDIT_RISK_TRAIN = "credit-risk-train"                  # New — Orchestrator → Credit Risk
+    FRAUD_DETECTION_TRAIN = "fraud-detection-train"           # New — Orchestrator → Fraud Detection
+    LOAN_AMOUNT_TRAIN = "loan-amount-train"                  # New — Orchestrator → Loan Amount
+    INCOME_VERIFICATION_TRAIN = "income-verification-train"  # New — Orchestrator → Income Verification
+    MODEL_TRAINING_COMPLETE = "model-training-complete"       # New — Each agent → Orchestrator
+    MODEL_TRAINING_COMPLETED = "model-training-completed"     # Existing — Orchestrator → Backend (all done)
 
     # Inference topics
-    INFERENCE_REQUEST = "inference-request"
-    CREDIT_RISK_PREDICT = "credit-risk-predict"
-    FRAUD_DETECT_PREDICT = "fraud-detect-predict"
-    LOAN_AMOUNT_PREDICT = "loan-amount-predict"
-    INCOME_VERIFY_PREDICT = "income-verify-predict"
-    PREDICTION_COMPLETE = "prediction-complete"
-    SCORING_COMPLETE = "scoring-complete"
+    INFERENCE_REQUEST = "inference-request"                   # New — DE → Orchestrator
+    CREDIT_RISK_PREDICT = "credit-risk-predict"              # New — Orchestrator → Credit Risk
+    FRAUD_DETECT_PREDICT = "fraud-detect-predict"            # New — Orchestrator → Fraud Detection
+    LOAN_AMOUNT_PREDICT = "loan-amount-predict"              # New — Orchestrator → Loan Amount
+    INCOME_VERIFY_PREDICT = "income-verify-predict"          # New — Orchestrator → Income Verification
+    PREDICTION_COMPLETE = "prediction-complete"               # New — Each agent → Orchestrator
+    SCORING_COMPLETE = "scoring-complete"                     # New — Orchestrator → Backend
 
 
 # ── Model Types ─────────────────────────────────────────────────────────────

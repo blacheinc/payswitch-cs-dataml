@@ -149,12 +149,14 @@ FEATURE_DEFINITIONS: list[FeatureDefinition] = [
         name="mobile_loan_history_count",
         index=15, group=FeatureGroup.C,
         available_product_45=False, available_product_49=True,
+        imputation_strategy=ImputationStrategy.ZERO,
         description="Number of mobile loan accounts",
     ),
     FeatureDefinition(
         name="mobile_max_loan_ghs",
         index=16, group=FeatureGroup.C,
         available_product_45=False, available_product_49=True,
+        imputation_strategy=ImputationStrategy.ZERO,
         description="Maximum mobile loan amount in GHS",
     ),
 

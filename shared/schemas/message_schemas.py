@@ -37,11 +37,12 @@ class BaseMessage:
 class TrainingDataReadyMessage(BaseMessage):
     """Data Engineer → Orchestrator: new training dataset is ready."""
     training_id: str
-    dataset_path: str
-    dataset_version: str
-    record_count: int
+    training_upload_id: str
+    timestamp: str
+    data_location: dict[str, str] = field(default_factory=dict)  # {container, blob_path}
+    record_count: int = 0
+    dataset_version: str = ""
     product_distribution: dict[str, int] = field(default_factory=dict)
-    published_at: str = ""
 
 
 @dataclass
@@ -69,10 +70,11 @@ class ModelTrainingCompleteMessage(BaseMessage):
 
 
 @dataclass
-class AllTrainingCompleteMessage(BaseMessage):
+class ModelTrainingCompletedMessage(BaseMessage):
     """Orchestrator → Backend: all models have finished training."""
     training_id: str
-    status: str  # "COMPLETE" or "PARTIAL"
+    training_upload_id: str = ""
+    status: str = ""  # "COMPLETE" or "PARTIAL"
     models_trained: dict[str, Any] = field(default_factory=dict)
     training_duration_seconds: float = 0.0
     dataset_info: dict[str, Any] = field(default_factory=dict)

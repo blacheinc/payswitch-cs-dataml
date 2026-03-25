@@ -16,15 +16,19 @@ class TestTrainingDataReadyMessage:
     def test_round_trip(self):
         msg = TrainingDataReadyMessage(
             training_id="TRN-001",
-            dataset_path="curated/training/dataset.parquet",
-            dataset_version="v1.0",
+            training_upload_id="Perfection12FHG244",
+            timestamp="2026-03-25T10:00:00Z",
+            data_location={"container": "curated", "blob_path": "ml-training/dataset.parquet"},
             record_count=50000,
-            product_distribution={"product_45": 35000, "product_49": 10000},
-            published_at="2026-03-24T10:00:00Z",
+            dataset_version="v2.1",
+            product_distribution={"product_45_only": 35000, "product_49_only": 10000, "both": 5000},
         )
         raw = msg.to_json()
         restored = TrainingDataReadyMessage.from_json(raw)
         assert restored.training_id == "TRN-001"
+        assert restored.training_upload_id == "Perfection12FHG244"
+        assert restored.data_location["container"] == "curated"
+        assert restored.data_location["blob_path"] == "ml-training/dataset.parquet"
         assert restored.record_count == 50000
 
 

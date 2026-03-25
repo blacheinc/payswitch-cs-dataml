@@ -52,14 +52,17 @@ class TestProductAvailability:
 
 
 class TestImputation:
-    def test_8_features_require_imputation(self):
-        assert len(FEATURES_REQUIRING_IMPUTATION) == 8
+    def test_10_features_require_imputation(self):
+        assert len(FEATURES_REQUIRING_IMPUTATION) == 10
 
     def test_imputation_features_match_spec(self):
         expected = {
+            # Product 49 gaps (8)
             "months_on_time_24m", "worst_arrears_24m", "current_streak_on_time",
             "product_diversity_score", "has_judgement", "num_bounced_cheques",
             "has_adverse_default", "address_stability",
+            # Product 45 gaps (2)
+            "mobile_loan_history_count", "mobile_max_loan_ghs",
         }
         assert set(IMPUTATION_FEATURE_NAMES) == expected
 
@@ -80,4 +83,5 @@ class TestImputation:
         assert set(zero_features) == {
             "worst_arrears_24m", "product_diversity_score",
             "has_judgement", "num_bounced_cheques", "has_adverse_default",
+            "mobile_loan_history_count", "mobile_max_loan_ghs",
         }
