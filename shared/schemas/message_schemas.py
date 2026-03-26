@@ -25,7 +25,10 @@ class BaseMessage:
     @classmethod
     def from_json(cls, raw: str | bytes) -> "BaseMessage":
         data = json.loads(raw)
-        return cls(**data)
+        # Filter to only fields this dataclass accepts — ignore extras
+        valid_fields = {f.name for f in cls.__dataclass_fields__.values()}
+        filtered = {k: v for k, v in data.items() if k in valid_fields}
+        return cls(**filtered)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -43,6 +46,8 @@ class TrainingDataReadyMessage(BaseMessage):
     record_count: int = 0
     dataset_version: str = ""
     product_distribution: dict[str, int] = field(default_factory=dict)
+    models_to_train: list[str] = field(default_factory=lambda: ["all"])  # ["all"] or subset e.g. ["credit_risk", "fraud_detection"]
+    cleaned_dataset_path: str = ""  # Optional — reuse existing cleaned dataset, skip imputation
 
 
 @dataclass
@@ -91,6 +96,7 @@ class InferenceRequestMessage(BaseMessage):
     request_id: str
     features: dict[str, Optional[float]] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
+    models_to_run: list[str] = field(default_factory=lambda: ["all"])  # ["all"] or subset e.g. ["credit_risk"]
 
 
 @dataclass

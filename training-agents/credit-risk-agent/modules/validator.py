@@ -7,6 +7,7 @@ and checks against minimum acceptable thresholds.
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -144,14 +145,14 @@ def compute_shap_explanation(
         shap_contributions: Top 5 features by absolute SHAP value.
         reason_codes: Up to 5 unique reason codes from SHAP features.
     """
-    explainer = shap.TreeExplainer(model)
-    shap_values = explainer.shap_values(X_single)
+    # Use XGBoost's built-in SHAP (avoids SHAP library compatibility issues with XGBoost 3.x)
+    booster = model.get_booster()
+    import xgboost as xgb
+    dmatrix = xgb.DMatrix(X_single, feature_names=list(X_single.columns))
+    shap_values_raw = booster.predict(dmatrix, pred_contribs=True)
 
-    # For binary classification, shap_values may be a single array
-    if isinstance(shap_values, list):
-        shap_vals = shap_values[1][0]  # Class 1 (default) SHAP values
-    else:
-        shap_vals = shap_values[0]
+    # Last column is the bias term — exclude it
+    shap_vals = shap_values_raw[0, :-1]
 
     feature_names = list(X_single.columns)
 

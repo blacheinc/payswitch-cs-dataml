@@ -1,8 +1,7 @@
 """
-Credit Risk Agent — Azure Function App.
+Fraud Detection Agent — Azure Function App.
 
-Service Bus triggered functions for training and inference.
-XGBoost binary classifier for probability of default prediction.
+Isolation Forest unsupervised anomaly detection for credit profiles.
 """
 
 from __future__ import annotations
@@ -20,12 +19,12 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 from shared.constants import ModelType, ServiceBusTopic
 from shared.schemas.feature_schema import ALL_FEATURE_NAMES
 from shared.schemas.message_schemas import (
-    CreditRiskPredictionResult,
+    FraudDetectionPredictionResult,
     ModelTrainingCompleteMessage,
     TrainModelMessage,
 )
 
-logger = logging.getLogger("payswitch-cs.credit-risk")
+logger = logging.getLogger("payswitch-cs.fraud-detection")
 
 app = func.FunctionApp()
 
@@ -33,31 +32,30 @@ SERVICE_BUS_CONNECTION = os.environ.get("SERVICE_BUS_CONNECTION", "")
 STORAGE_CONNECTION = os.environ.get("STORAGE_CONNECTION", "")
 
 
-@app.function_name("credit_risk_train")
+@app.function_name("fraud_detection_train")
 @app.service_bus_topic_trigger(
     arg_name="message",
-    topic_name="credit-risk-train",
-    subscription_name="credit-risk-sub",
+    topic_name="fraud-detection-train",
+    subscription_name="fraud-detection-sub",
     connection="SERVICE_BUS_CONNECTION",
 )
-def credit_risk_train(message: func.ServiceBusMessage) -> None:
+def fraud_detection_train(message: func.ServiceBusMessage) -> None:
     """Handle training requests from the Orchestrator."""
     start_time = time.time()
     raw = message.get_body().decode("utf-8")
     msg = TrainModelMessage.from_json(raw)
     training_id = msg.training_id
 
-    logger.info("Credit Risk training started: %s", training_id)
+    logger.info("Fraud Detection training started: %s", training_id)
 
     try:
         from azure.storage.blob import BlobServiceClient
 
         from modules.registry import log_and_register_model
-        from modules.trainer import prepare_data, run_training_pipeline
+        from modules.trainer import run_training_pipeline
         from modules.validator import (
-            check_thresholds,
-            evaluate_model,
-            get_feature_importance,
+            sanity_check_known_bad,
+            validate_distribution,
         )
 
         # Load dataset
@@ -67,34 +65,35 @@ def credit_risk_train(message: func.ServiceBusMessage) -> None:
         df = pd.read_parquet(io.BytesIO(blob_data))
 
         # Train
-        model, best_params, split_info = run_training_pipeline(df, n_trials=50)
+        model, thresholds, training_info = run_training_pipeline(df)
 
-        # Evaluate on holdout
-        _, _, X_holdout, _, _, y_holdout = prepare_data(df)
-        metrics = evaluate_model(model, X_holdout, y_holdout)
-        warnings = check_thresholds(metrics)
-        importance = get_feature_importance(model)
+        # Validate
+        dist_warnings = validate_distribution(training_info)
+        sanity = sanity_check_known_bad(model, df, thresholds)
 
         # Register
         model_version = log_and_register_model(
-            model, metrics, best_params, split_info, warnings, importance,
+            model, thresholds, training_info, dist_warnings, sanity,
         )
 
         # Publish completion
         elapsed = time.time() - start_time
         result_msg = ModelTrainingCompleteMessage(
             training_id=training_id,
-            model_type=ModelType.CREDIT_RISK.value,
+            model_type=ModelType.FRAUD_DETECTION.value,
             status="SUCCESS",
             model_version=model_version,
-            registry_name="credit-scoring-risk-xgboost",
-            metrics=metrics,
-            training_duration_seconds=elapsed,
-            dataset_records_used=split_info["train_size"] + split_info["val_size"] + split_info["holdout_size"],
-            class_distribution={
-                "default_0": int((1 - split_info["default_rate"]) * split_info["train_size"]),
-                "default_1": int(split_info["default_rate"] * split_info["train_size"]),
+            registry_name="credit-scoring-fraud-iforest",
+            metrics={
+                "contamination_rate": training_info["contamination"],
+                "low_pct": training_info["low_pct"],
+                "medium_pct": training_info["medium_pct"],
+                "high_pct": training_info["high_pct"],
+                "low_medium_threshold": thresholds["low_medium_boundary"],
+                "medium_high_threshold": thresholds["medium_high_boundary"],
             },
+            training_duration_seconds=elapsed,
+            dataset_records_used=training_info["total_records"],
         )
 
         with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
@@ -102,54 +101,54 @@ def credit_risk_train(message: func.ServiceBusMessage) -> None:
             with sender:
                 sender.send_messages(ServiceBusMessage(result_msg.to_json()))
 
-        logger.info("Credit Risk training complete: %s (%.1fs)", training_id, elapsed)
+        logger.info("Fraud Detection training complete: %s (%.1fs)", training_id, elapsed)
 
     except Exception as exc:
-        logger.exception("Credit Risk training failed: %s", training_id)
+        logger.exception("Fraud Detection training failed: %s", training_id)
         _publish_failure(training_id, str(exc))
 
 
-@app.function_name("credit_risk_predict")
+@app.function_name("fraud_detection_predict")
 @app.service_bus_topic_trigger(
     arg_name="message",
-    topic_name="credit-risk-predict",
-    subscription_name="credit-risk-sub",
+    topic_name="fraud-detect-predict",
+    subscription_name="fraud-detection-sub",
     connection="SERVICE_BUS_CONNECTION",
 )
-def credit_risk_predict(message: func.ServiceBusMessage) -> None:
+def fraud_detection_predict(message: func.ServiceBusMessage) -> None:
     """Handle prediction requests from the Orchestrator."""
     raw = message.get_body().decode("utf-8")
     data = json.loads(raw)
     request_id = data["request_id"]
     features = data["features"]
 
-    logger.info("Credit Risk prediction started: %s", request_id)
+    logger.info("Fraud Detection prediction started: %s", request_id)
 
     try:
         from modules.registry import load_champion_model
-        from modules.validator import compute_shap_explanation
+        from modules.trainer import (
+            classify_fraud_flag,
+            normalize_anomaly_score,
+        )
 
-        # Load model
-        model, model_version = load_champion_model()
+        # Load model + thresholds
+        model, thresholds, model_version = load_champion_model()
 
         # Prepare features
         X = pd.DataFrame([features])[ALL_FEATURE_NAMES]
 
-        # Predict
-        proba = model.predict_proba(X)
-        probability_of_default = float(proba[0, 1])
-        pd_confidence = float(max(proba[0]))
-
-        # SHAP explanation
-        contributions, reason_codes = compute_shap_explanation(model, X)
+        # Score
+        raw_score = float(model.score_samples(X)[0])
+        normalized_score = normalize_anomaly_score(
+            raw_score, thresholds["min_score"], thresholds["max_score"],
+        )
+        flag = classify_fraud_flag(raw_score, thresholds)
 
         # Publish result
-        result = CreditRiskPredictionResult(
+        result = FraudDetectionPredictionResult(
             request_id=request_id,
-            probability_of_default=round(probability_of_default, 6),
-            pd_confidence=round(pd_confidence, 4),
-            shap_contributions=contributions,
-            decision_reason_codes=reason_codes,
+            fraud_anomaly_score=round(normalized_score, 4),
+            fraud_risk_flag=flag,
             model_version=model_version,
         )
 
@@ -159,20 +158,20 @@ def credit_risk_predict(message: func.ServiceBusMessage) -> None:
                 sender.send_messages(ServiceBusMessage(result.to_json()))
 
         logger.info(
-            "Credit Risk prediction complete: %s (PD=%.4f)",
-            request_id, probability_of_default,
+            "Fraud Detection prediction complete: %s (score=%.4f, flag=%s)",
+            request_id, normalized_score, flag,
         )
 
     except Exception:
-        logger.exception("Credit Risk prediction failed: %s", request_id)
+        logger.exception("Fraud Detection prediction failed: %s", request_id)
 
 
 def _publish_failure(training_id: str, error: str) -> None:
-    """Publish training failure to model-training-complete."""
+    """Publish training failure."""
     try:
         msg = ModelTrainingCompleteMessage(
             training_id=training_id,
-            model_type=ModelType.CREDIT_RISK.value,
+            model_type=ModelType.FRAUD_DETECTION.value,
             status="FAILED",
             error_message=error,
         )

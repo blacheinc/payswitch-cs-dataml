@@ -8,6 +8,7 @@ Uses Optuna for hyperparameter tuning, SHAP for explanations.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
 
 import numpy as np
@@ -170,12 +171,27 @@ def run_training_pipeline(
     minority_pct = min(y_train.mean(), 1 - y_train.mean())
     scale_pos_weight = compute_scale_pos_weight(y_train) if minority_pct < 0.3 else 1.0
 
-    # Tune
-    best_params = tune_hyperparameters(
-        X_train, y_train, X_val, y_val,
-        scale_pos_weight=scale_pos_weight,
-        n_trials=n_trials,
-    )
+    # Tune (or use defaults if tuning disabled)
+    enable_tuning = os.environ.get("ENABLE_HYPERPARAMETER_TUNING", "true").lower() == "true"
+
+    if enable_tuning:
+        best_params = tune_hyperparameters(
+            X_train, y_train, X_val, y_val,
+            scale_pos_weight=scale_pos_weight,
+            n_trials=n_trials,
+        )
+    else:
+        best_params = {
+            "n_estimators": 500,
+            "max_depth": 6,
+            "learning_rate": 0.05,
+            "subsample": 0.8,
+            "colsample_bytree": 0.7,
+            "min_child_weight": 5,
+            "reg_alpha": 0.1,
+            "reg_lambda": 5.0,
+        }
+        logger.info("Hyperparameter tuning DISABLED — using defaults")
 
     # Train final
     model = train_final_model(X_train, y_train, X_val, y_val, best_params, scale_pos_weight)
