@@ -13,6 +13,10 @@ import os
 import tempfile
 from typing import Any
 
+import warnings
+warnings.filterwarnings("ignore", message=".*pickle.*cloudpickle.*")
+warnings.filterwarnings("ignore", message=".*Failed to resolve installed pip.*")
+
 import mlflow
 import mlflow.xgboost
 import xgboost as xgb
@@ -86,7 +90,7 @@ def log_and_register_model(
 
         # Save model to temp dir for registration
         with tempfile.TemporaryDirectory() as tmpdir:
-            model_path = os.path.join(tmpdir, "model.xgb")
+            model_path = os.path.join(tmpdir, "model.ubj")
             model.save_model(model_path)
 
             # Save metrics alongside
@@ -141,11 +145,13 @@ def load_champion_model() -> tuple[xgb.XGBClassifier, str]:
         download_dir = f"./{REGISTRY_NAME}"
         ml_client.models.download(name=REGISTRY_NAME, version=latest.version, download_path=download_dir)
 
-        # Find model.xgb in the downloaded directory
+        # Find model file in the downloaded directory (.ubj or .xgb)
         import glob
-        xgb_files = glob.glob(os.path.join(download_dir, "**", "model.xgb"), recursive=True)
+        xgb_files = glob.glob(os.path.join(download_dir, "**", "model.ubj"), recursive=True)
         if not xgb_files:
-            raise RuntimeError(f"model.xgb not found in downloaded artifacts at {download_dir}")
+            xgb_files = glob.glob(os.path.join(download_dir, "**", "model.xgb"), recursive=True)
+        if not xgb_files:
+            raise RuntimeError(f"model.ubj/model.xgb not found in {download_dir}")
 
         model = xgb.XGBClassifier()
         model.load_model(xgb_files[0])

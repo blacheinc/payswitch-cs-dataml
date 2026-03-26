@@ -14,6 +14,10 @@ import pickle
 import tempfile
 from typing import Any
 
+import warnings
+warnings.filterwarnings("ignore", message=".*pickle.*cloudpickle.*")
+warnings.filterwarnings("ignore", message=".*Failed to resolve installed pip.*")
+
 import lightgbm as lgb
 import mlflow
 import mlflow.sklearn

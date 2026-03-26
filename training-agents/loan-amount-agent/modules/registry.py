@@ -15,6 +15,11 @@ import pickle
 import tempfile
 from typing import Any
 
+import warnings
+warnings.filterwarnings("ignore", message=".*pickle.*cloudpickle.*")
+warnings.filterwarnings("ignore", message=".*Failed to resolve installed pip.*")
+warnings.filterwarnings("ignore", message=".*Model was missing function.*")
+
 import lightgbm as lgb
 import mlflow
 import mlflow.sklearn
@@ -92,7 +97,7 @@ def log_and_register_model(
             with open(os.path.join(tmpdir, "ridge_model.pkl"), "wb") as f:
                 pickle.dump(ridge_model, f)
 
-            xgb_path = os.path.join(tmpdir, "xgb_model.xgb")
+            xgb_path = os.path.join(tmpdir, "xgb_model.ubj")
             xgb_model.save_model(xgb_path)
 
             with open(os.path.join(tmpdir, "scaler.pkl"), "wb") as f:
@@ -158,7 +163,10 @@ def load_champion_models() -> tuple[lgb.LGBMRegressor, Ridge, xgb.XGBRegressor, 
             ridge_model = pickle.load(f)
 
         xgb_model = xgb.XGBRegressor()
-        xgb_model.load_model(os.path.join(model_dir, "xgb_model.xgb"))
+        xgb_path = os.path.join(model_dir, "xgb_model.ubj")
+        if not os.path.exists(xgb_path):
+            xgb_path = os.path.join(model_dir, "xgb_model.xgb")
+        xgb_model.load_model(xgb_path)
 
         with open(os.path.join(model_dir, "scaler.pkl"), "rb") as f:
             scaler = pickle.load(f)
