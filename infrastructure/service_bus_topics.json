@@ -1,0 +1,147 @@
+{
+  "description": "Azure Service Bus topics for PaySwitch Credit Scoring Engine",
+  "namespace": "blache-cdtscr-dev-sb-y27jgavel2x32",
+  "resource_group": "blache-cdtscr-dev-data-rg",
+  "topics": [
+    {
+      "name": "training-data-ready",
+      "status": "CREATE",
+      "direction": "Data Engineer → Orchestrator",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"}
+      ]
+    },
+    {
+      "name": "model-training-started",
+      "status": "EXISTS",
+      "direction": "Orchestrator → Backend",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "backend-sub", "consumer": "backend", "status": "EXISTS"},
+        {"name": "cs-backend", "consumer": "backend", "status": "EXISTS"}
+      ]
+    },
+    {
+      "name": "credit-risk-train",
+      "status": "CREATE",
+      "direction": "Orchestrator → Credit Risk Agent",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "credit-risk-sub", "consumer": "credit-risk-agent"}
+      ]
+    },
+    {
+      "name": "fraud-detection-train",
+      "status": "CREATE",
+      "direction": "Orchestrator → Fraud Detection Agent",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "fraud-detection-sub", "consumer": "fraud-detection-agent"}
+      ]
+    },
+    {
+      "name": "loan-amount-train",
+      "status": "CREATE",
+      "direction": "Orchestrator → Loan Amount Agent",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "loan-amount-sub", "consumer": "loan-amount-agent"}
+      ]
+    },
+    {
+      "name": "income-verification-train",
+      "status": "CREATE",
+      "direction": "Orchestrator → Income Verification Agent",
+      "phase": "training",
+      "subscriptions": [
+        {"name": "income-verification-sub", "consumer": "income-verification-agent"}
+      ]
+    },
+    {
+      "name": "model-training-complete",
+      "status": "CREATE",
+      "direction": "All Model Agents → Orchestrator",
+      "phase": "training",
+      "note": "Per-agent results. Different from model-training-completed (final summary).",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"}
+      ]
+    },
+    {
+      "name": "model-training-completed",
+      "status": "EXISTS",
+      "direction": "Orchestrator → Backend",
+      "phase": "training",
+      "note": "Final all-models-done summary. Reused from existing infrastructure.",
+      "subscriptions": [
+        {"name": "cs-backend", "consumer": "backend", "status": "EXISTS"},
+        {"name": "monitoring-sub", "consumer": "monitoring", "status": "EXISTS"},
+        {"name": "test-sub", "consumer": "testing", "status": "EXISTS"}
+      ]
+    },
+    {
+      "name": "inference-request",
+      "status": "CREATE",
+      "direction": "Data Engineer → Orchestrator",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"}
+      ]
+    },
+    {
+      "name": "credit-risk-predict",
+      "status": "CREATE",
+      "direction": "Orchestrator → Credit Risk Agent",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "credit-risk-sub", "consumer": "credit-risk-agent"}
+      ]
+    },
+    {
+      "name": "fraud-detect-predict",
+      "status": "CREATE",
+      "direction": "Orchestrator → Fraud Detection Agent",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "fraud-detection-sub", "consumer": "fraud-detection-agent"}
+      ]
+    },
+    {
+      "name": "loan-amount-predict",
+      "status": "CREATE",
+      "direction": "Orchestrator → Loan Amount Agent",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "loan-amount-sub", "consumer": "loan-amount-agent"}
+      ]
+    },
+    {
+      "name": "income-verify-predict",
+      "status": "CREATE",
+      "direction": "Orchestrator → Income Verification Agent",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "income-verification-sub", "consumer": "income-verification-agent"}
+      ]
+    },
+    {
+      "name": "prediction-complete",
+      "status": "CREATE",
+      "direction": "All Model Agents → Orchestrator",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"}
+      ]
+    },
+    {
+      "name": "scoring-complete",
+      "status": "CREATE",
+      "direction": "Orchestrator → Backend",
+      "phase": "inference",
+      "subscriptions": [
+        {"name": "backend-sub", "consumer": "backend"}
+      ]
+    }
+  ]
+}

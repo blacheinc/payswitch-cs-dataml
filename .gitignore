@@ -31,6 +31,9 @@ local.settings.json
 mlruns/
 mlflow.db
 
+# Azure ML model download artifacts
+credit-scoring-*/
+
 # Environment variables
 .env
 .env.*
@@ -54,3 +57,7 @@ htmlcov/
 
 # Claude
 .claude/
+CLAUDE.md
+
+#temp files
+temp_files/

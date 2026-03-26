@@ -1,0 +1,10 @@
+azure-functions==1.21.3
+azure-servicebus==7.12.3
+azure-storage-blob==12.23.1
+lightgbm==4.5.0
+scikit-learn==1.6.1
+optuna==4.2.0
+mlflow==2.19.0
+azureml-mlflow==1.57.0.post1
+pandas==2.2.3
+numpy==1.26.4
