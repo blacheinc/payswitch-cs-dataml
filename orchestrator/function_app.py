@@ -258,9 +258,9 @@ def training_orchestrator(message: func.ServiceBusMessage) -> None:
             training_id, elapsed, len(models), models,
         )
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Training orchestration failed for %s", training_id)
-        _publish_training_error(training_id, ["Unexpected orchestrator error"])
+        _publish_training_error(training_id, [f"Orchestrator error: {type(exc).__name__}: {exc}"])
 
 
 @app.function_name("training_result_collector")

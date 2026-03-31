@@ -52,6 +52,13 @@ def log_and_register_model(
 ) -> str:
     """Log model and register in Azure ML."""
     # Step 1: MLflow local tracking
+    tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(tracking_uri)
+    try:
+        mlflow.create_experiment("income-verification", artifact_location="/tmp/mlruns")
+    except Exception:
+        pass
+    mlflow.set_experiment("income-verification")
     with mlflow.start_run(run_name=f"income-verification-{model_version}") as run:
         mlflow.log_params({
             "model_type": "lightgbm_multiclass",
@@ -72,7 +79,7 @@ def log_and_register_model(
 
         mlflow.log_metrics(flat_metrics)
 
-        mlflow.sklearn.log_model(model, name="model")
+        mlflow.sklearn.log_model(model, artifact_path="model")
         mlflow.log_text(json.dumps(selected_features), "selected_features.json")
 
         if threshold_warnings:

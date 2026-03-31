@@ -52,6 +52,13 @@ def log_and_register_model(
 ) -> str:
     """Log model + thresholds and register in Azure ML."""
     # Step 1: MLflow local tracking
+    tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(tracking_uri)
+    try:
+        mlflow.create_experiment("fraud-detection", artifact_location="/tmp/mlruns")
+    except Exception:
+        pass
+    mlflow.set_experiment("fraud-detection")
     with mlflow.start_run(run_name=f"fraud-detection-{model_version}") as run:
         mlflow.log_params({
             "model_type": "isolation_forest",
@@ -66,7 +73,7 @@ def log_and_register_model(
             "high_pct": training_info["high_pct"],
         })
 
-        mlflow.sklearn.log_model(model, name="model")
+        mlflow.sklearn.log_model(model, artifact_path="model")
         mlflow.log_text(json.dumps(thresholds, indent=2), "threshold_params.json")
         mlflow.log_text(json.dumps(sanity_check, indent=2), "sanity_check.json")
 

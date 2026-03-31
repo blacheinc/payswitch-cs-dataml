@@ -57,6 +57,15 @@ def log_and_register_model(
         The registered model version string.
     """
     # Step 1: Log to MLflow (local experiment tracking)
+    tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(tracking_uri)
+    # Create experiment with /tmp artifact root (Azure Functions filesystem is read-only)
+    exp_name = "credit-risk"
+    try:
+        mlflow.create_experiment(exp_name, artifact_location="/tmp/mlruns")
+    except Exception:
+        pass  # Already exists
+    mlflow.set_experiment(exp_name)
     with mlflow.start_run(run_name=f"credit-risk-{model_version}") as run:
         mlflow.log_params(best_params)
         mlflow.log_params({
@@ -68,7 +77,7 @@ def log_and_register_model(
         mlflow.log_params({f"split_{k}": v for k, v in split_info.items()})
         mlflow.log_metrics(metrics)
 
-        mlflow.xgboost.log_model(model, name="model")
+        mlflow.xgboost.log_model(model, artifact_path="model")
 
         importance_json = json.dumps(feature_importance, indent=2)
         mlflow.log_text(importance_json, "feature_importance.json")

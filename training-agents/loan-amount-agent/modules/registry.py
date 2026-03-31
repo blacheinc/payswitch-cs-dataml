@@ -61,6 +61,13 @@ def log_and_register_model(
 ) -> str:
     """Log all sub-models and register in Azure ML."""
     # Step 1: MLflow local tracking
+    tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
+    mlflow.set_tracking_uri(tracking_uri)
+    try:
+        mlflow.create_experiment("loan-amount", artifact_location="/tmp/mlruns")
+    except Exception:
+        pass
+    mlflow.set_experiment("loan-amount")
     with mlflow.start_run(run_name=f"loan-amount-{model_version}") as run:
         mlflow.log_params({
             "model_type": "ensemble_lgbm_ridge_xgb",
@@ -70,10 +77,10 @@ def log_and_register_model(
 
         mlflow.log_metrics(metrics)
 
-        mlflow.sklearn.log_model(lgbm_model, name="lgbm_model")
-        mlflow.sklearn.log_model(ridge_model, name="ridge_model")
-        mlflow.xgboost.log_model(xgb_model, name="xgb_model")
-        mlflow.sklearn.log_model(scaler, name="scaler")
+        mlflow.sklearn.log_model(lgbm_model, artifact_path="lgbm_model")
+        mlflow.sklearn.log_model(ridge_model, artifact_path="ridge_model")
+        mlflow.xgboost.log_model(xgb_model, artifact_path="xgb_model")
+        mlflow.sklearn.log_model(scaler, artifact_path="scaler")
 
         mlflow.log_text(json.dumps(selected_features), "selected_features.json")
 
