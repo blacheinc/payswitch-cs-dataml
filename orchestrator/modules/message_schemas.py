@@ -54,7 +54,7 @@ def build_training_completed(
     return ModelTrainingCompletedMessage(
         training_id=training_id,
         training_upload_id=training_upload_id,
-        status="COMPLETE" if all_succeeded else "PARTIAL",
+        status="COMPLETE" if all_succeeded else ("PARTIAL" if models_trained else "FAILED"),
         models_trained=models_trained,
         training_duration_seconds=training_duration_seconds,
         dataset_info=dataset_info,
