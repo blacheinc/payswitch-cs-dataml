@@ -155,6 +155,38 @@ def train_final_model(
     return model
 
 
+def calibrate_probabilities(
+    model: xgb.XGBClassifier,
+    X_cal: pd.DataFrame,
+    y_cal: pd.Series,
+) -> dict[str, float]:
+    """
+    Compute Platt Scaling parameters.
+
+    Fits a logistic regression on the model's raw probabilities vs true labels
+    to produce calibrated probabilities: P_calibrated = 1 / (1 + exp(A * p + B))
+
+    Returns:
+        Dict with keys "A" and "B" (Platt parameters).
+    """
+    from sklearn.linear_model import LogisticRegression
+
+    raw_proba = model.predict_proba(X_cal)[:, 1].reshape(-1, 1)
+    lr = LogisticRegression(solver="lbfgs", max_iter=1000)
+    lr.fit(raw_proba, y_cal)
+
+    A = float(lr.coef_[0][0])
+    B = float(lr.intercept_[0])
+
+    return {"A": A, "B": B}
+
+
+def apply_platt_scaling(raw_pd: float, A: float, B: float) -> float:
+    """Apply Platt Scaling calibration to a raw PD value."""
+    import math
+    return 1.0 / (1.0 + math.exp(-(A * raw_pd + B)))
+
+
 def run_training_pipeline(
     df: pd.DataFrame,
     n_trials: int = 50,
@@ -196,12 +228,18 @@ def run_training_pipeline(
     # Train final
     model = train_final_model(X_train, y_train, X_val, y_val, best_params, scale_pos_weight)
 
+    # Platt Scaling calibration on holdout (BLD Section 6.2)
+    calibration_params = calibrate_probabilities(model, X_holdout, y_holdout)
+    logger.info("Platt Scaling: A=%.4f, B=%.4f", calibration_params["A"], calibration_params["B"])
+
     split_info = {
         "train_size": len(X_train),
         "val_size": len(X_val),
         "holdout_size": len(X_holdout),
         "default_rate": float(y_train.mean()),
         "scale_pos_weight": scale_pos_weight,
+        "calibration_A": calibration_params["A"],
+        "calibration_B": calibration_params["B"],
     }
 
     return model, best_params, split_info

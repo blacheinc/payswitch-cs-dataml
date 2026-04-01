@@ -130,15 +130,26 @@ def credit_risk_predict(message: func.ServiceBusMessage) -> None:
         from modules.validator import compute_shap_explanation
 
         # Load model
-        model, model_version = load_champion_model()
+        model, model_version, calibration_params = load_champion_model()
 
         # Prepare features
         X = pd.DataFrame([features])[ALL_FEATURE_NAMES]
 
         # Predict
         proba = model.predict_proba(X)
-        probability_of_default = float(proba[0, 1])
-        pd_confidence = float(max(proba[0]))
+        raw_pd = float(proba[0, 1])
+
+        # Apply Platt Scaling if calibration params available
+        if calibration_params:
+            from modules.trainer import apply_platt_scaling
+            probability_of_default = apply_platt_scaling(
+                raw_pd, calibration_params["A"], calibration_params["B"],
+            )
+            logger.info("PD calibrated: raw=%.4f → calibrated=%.4f", raw_pd, probability_of_default)
+        else:
+            probability_of_default = raw_pd
+
+        pd_confidence = max(probability_of_default, 1.0 - probability_of_default)
 
         # SHAP explanation
         contributions, reason_codes = compute_shap_explanation(model, X)

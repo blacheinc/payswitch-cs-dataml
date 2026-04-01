@@ -107,6 +107,15 @@ def log_and_register_model(
             with open(metrics_path, "w") as f:
                 json.dump(metrics, f, indent=2)
 
+            # Save Platt Scaling calibration params (BLD Section 6.2)
+            if split_info.get("calibration_A") is not None:
+                cal_path = os.path.join(tmpdir, "calibration_params.json")
+                with open(cal_path, "w") as f:
+                    json.dump({
+                        "A": split_info["calibration_A"],
+                        "B": split_info["calibration_B"],
+                    }, f, indent=2)
+
             azure_model = Model(
                 name=REGISTRY_NAME,
                 path=tmpdir,
@@ -135,17 +144,18 @@ def log_and_register_model(
         return model_version
 
 
-def load_champion_model() -> tuple[xgb.XGBClassifier, str]:
+def load_champion_model() -> tuple[xgb.XGBClassifier, str, dict[str, float] | None]:
     """
-    Load the latest model from Azure ML registry.
+    Load the latest model + calibration params from Azure ML registry.
 
     Returns:
-        Tuple of (loaded XGBoost model, model version string).
+        Tuple of (loaded XGBoost model, model version, calibration_params or None).
     """
     try:
+        import glob
+
         ml_client = _get_azure_ml_client()
 
-        # Get latest version
         models = list(ml_client.models.list(name=REGISTRY_NAME))
         if not models:
             raise RuntimeError(f"No model found for {REGISTRY_NAME}")
@@ -154,8 +164,7 @@ def load_champion_model() -> tuple[xgb.XGBClassifier, str]:
         download_dir = f"./{REGISTRY_NAME}"
         ml_client.models.download(name=REGISTRY_NAME, version=latest.version, download_path=download_dir)
 
-        # Find model file in the downloaded directory (.ubj or .xgb)
-        import glob
+        # Find model file (.ubj or .xgb)
         xgb_files = glob.glob(os.path.join(download_dir, "**", "model.ubj"), recursive=True)
         if not xgb_files:
             xgb_files = glob.glob(os.path.join(download_dir, "**", "model.xgb"), recursive=True)
@@ -165,11 +174,21 @@ def load_champion_model() -> tuple[xgb.XGBClassifier, str]:
         model = xgb.XGBClassifier()
         model.load_model(xgb_files[0])
 
-        logger.info("Loaded model %s v%s from Azure ML (%s)", REGISTRY_NAME, latest.version, xgb_files[0])
-        return model, latest.version
+        # Load Platt Scaling calibration params if available
+        model_dir = os.path.dirname(xgb_files[0])
+        calibration_params = None
+        cal_path = os.path.join(model_dir, "calibration_params.json")
+        if os.path.exists(cal_path):
+            with open(cal_path) as f:
+                calibration_params = json.load(f)
+            logger.info("Loaded calibration params: A=%.4f, B=%.4f",
+                        calibration_params["A"], calibration_params["B"])
+
+        logger.info("Loaded model %s v%s from Azure ML", REGISTRY_NAME, latest.version)
+        return model, latest.version, calibration_params
 
     except Exception:
         logger.exception("Failed to load from Azure ML — falling back to local MLflow")
         model_uri = f"models:/{REGISTRY_NAME}/latest"
         model = mlflow.xgboost.load_model(model_uri)
-        return model, "local"
+        return model, "local", None

@@ -67,6 +67,7 @@ class ScoringResponse:
     loan_amount: Optional[LoanAmountResponse]
     income_verification: Optional[IncomeVerificationResponse]
     scoring_metadata: ScoringMetadata
+    refer_reasons: list[str] = field(default_factory=list)  # Soft-stop reasons if REFER
 
     def to_dict(self) -> dict[str, Any]:
         result = asdict(self)

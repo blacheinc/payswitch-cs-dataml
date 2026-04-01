@@ -719,6 +719,7 @@ def _run_final_decision(
             applicant_age_at_application=metadata.get("applicant_age_at_application", 0),
             credit_age_months_at_application=metadata.get("credit_age_months_at_application", 0),
         ),
+        refer_reasons=decision_result.refer_reasons,
     )
 
     # Publish to scoring-complete

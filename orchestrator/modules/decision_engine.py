@@ -226,6 +226,7 @@ class DecisionResult:
     risk_tier: RiskTier
     conditions: list[str] = field(default_factory=list)
     recommended_loan_tier: Optional[LoanTier] = None
+    refer_reasons: list[str] = field(default_factory=list)
 
 
 def run_decision_engine(
@@ -278,7 +279,16 @@ def run_decision_engine(
     # Step 4: Conflict resolution (more conservative wins)
     final_decision = resolve_decision_conflict(derived_decision, data_engineer_decision_label)
 
-    # Step 5: Conditions (only for CONDITIONAL_APPROVE)
+    # Step 5: Soft-stop REFER rules (BLD Section 7.3)
+    # These can escalate APPROVE or CONDITIONAL_APPROVE to REFER
+    refer_reasons: list[str] = []
+    if final_decision in (Decision.APPROVE, Decision.CONDITIONAL_APPROVE):
+        refer_reasons = _check_soft_stop_rules(features, metadata or {})
+        if refer_reasons:
+            logger.info("Soft-stop REFER triggered: %s", refer_reasons)
+            final_decision = Decision.REFER
+
+    # Step 6: Conditions (only for CONDITIONAL_APPROVE)
     conditions: list[str] = []
     if final_decision == Decision.CONDITIONAL_APPROVE:
         conditions = derive_conditions(
@@ -293,4 +303,41 @@ def run_decision_engine(
         risk_tier=risk_tier,
         conditions=conditions,
         recommended_loan_tier=loan_tier,
+        refer_reasons=refer_reasons,
     )
+
+
+def _check_soft_stop_rules(
+    features: dict[str, float],
+    metadata: dict[str, Any],
+) -> list[str]:
+    """
+    Check soft-stop rules that trigger REFER.
+
+    Returns list of reasons (empty = no REFER needed).
+    """
+    reasons: list[str] = []
+
+    # 1. Credit shopping: enquiries > 5 in last 3 months
+    #    num_enquiries_3m bin weights: 0-1=1.00, 2-3=0.75, 4-5=0.35, >5=0.05
+    if features.get("num_enquiries_3m", 1.0) <= 0.05:
+        reasons.append("Excessive bureau enquiries in last 3 months (credit shopping)")
+
+    # 2. Borderline score + high loan amount
+    credit_score = metadata.get("credit_score", 0)
+    if 450 <= credit_score <= 519:
+        # We don't have requested loan amount in metadata currently,
+        # but if the score is borderline, flag for review
+        reasons.append("Borderline credit score (450-519) — requires analyst review")
+
+    # 3. Income verification confidence < 0.65
+    income_confidence = metadata.get("income_confidence")
+    if income_confidence is not None and income_confidence < 0.65:
+        reasons.append("Income verification confidence below 0.65")
+
+    # 4. Data Quality Score between 0.60 and 0.75
+    dqs = metadata.get("data_quality_score", 1.0)
+    if 0.60 <= dqs <= 0.75:
+        reasons.append(f"Data quality score marginal ({dqs:.2f})")
+
+    return reasons
