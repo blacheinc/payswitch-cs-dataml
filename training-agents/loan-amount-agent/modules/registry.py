@@ -35,6 +35,29 @@ logger = logging.getLogger("payswitch-cs.loan-amount.registry")
 REGISTRY_NAME = MODEL_REGISTRY_NAMES[ModelType.LOAN_AMOUNT]
 
 
+def _should_promote(
+    ml_client, registry_name: str, new_metrics: dict[str, float], primary_metric: str = "ensemble_r2",
+) -> tuple[bool, dict]:
+    """Champion-Challenger comparison. Returns (should_promote, info)."""
+    try:
+        models = list(ml_client.models.list(name=registry_name))
+        if not models:
+            return True, {}
+        latest = max(models, key=lambda m: int(m.version))
+        champion_metrics = json.loads(latest.properties.get("metrics", "{}"))
+        champion_value = champion_metrics.get(primary_metric, 0)
+        new_value = new_metrics.get(primary_metric, 0)
+        info = {"champion_version": latest.version, "champion_value": champion_value, "new_value": new_value}
+        if new_value >= champion_value:
+            logger.info("Challenger wins: %s %.4f >= champion %.4f (v%s)", primary_metric, new_value, champion_value, latest.version)
+            return True, info
+        logger.info("Champion retains: %s %.4f < champion %.4f (v%s)", primary_metric, new_value, champion_value, latest.version)
+        return False, info
+    except Exception:
+        logger.warning("Cannot compare with champion — promoting by default")
+        return True, {}
+
+
 def _get_azure_ml_client():
     """Create Azure ML client from environment variables."""
     from azure.ai.ml import MLClient
@@ -90,12 +113,19 @@ def log_and_register_model(
         mlflow.set_tag("model_version", model_version)
         logger.info("MLflow run logged: %s (run_id=%s)", REGISTRY_NAME, run.info.run_id)
 
-    # Step 2: Register in Azure ML
+    # Step 2: Register in Azure ML (with champion-challenger gate)
     try:
         from azure.ai.ml.constants import AssetTypes
         from azure.ai.ml.entities import Model
 
         ml_client = _get_azure_ml_client()
+
+        should_register, champion_info = _should_promote(ml_client, REGISTRY_NAME, metrics)
+        if not should_register:
+            logger.warning("Model NOT promoted — new R2 %.4f <= champion R2 %.4f (v%s)",
+                           metrics.get("ensemble_r2", 0), champion_info.get("champion_value", 0),
+                           champion_info.get("champion_version", "?"))
+            return f"REJECTED:champion_v{champion_info.get('champion_version', '?')}"
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Save all sub-models

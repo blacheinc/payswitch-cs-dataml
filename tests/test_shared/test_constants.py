@@ -47,7 +47,7 @@ class TestPdBoundaries:
 
 class TestServiceBusTopics:
     def test_total_topic_count(self):
-        assert len(ServiceBusTopic) == 15  # 8 training + 7 inference
+        assert len(ServiceBusTopic) == 16  # 8 training + 7 inference + 1 monitoring
 
     def test_training_topics_exist(self):
         assert ServiceBusTopic.TRAINING_DATA_READY.value == "training-data-ready"

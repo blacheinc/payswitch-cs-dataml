@@ -84,11 +84,13 @@ def log_and_register_model(
         logger.info("MLflow run logged: %s (run_id=%s)", REGISTRY_NAME, run.info.run_id)
 
     # Step 2: Register in Azure ML
+    # Fraud Detection is unsupervised — always promote (thresholds recalibrated each run)
     try:
         from azure.ai.ml.constants import AssetTypes
         from azure.ai.ml.entities import Model
 
         ml_client = _get_azure_ml_client()
+        logger.info("Fraud Detection: unsupervised model — always promoted (no champion comparison)")
 
         with tempfile.TemporaryDirectory() as tmpdir:
             # Save model

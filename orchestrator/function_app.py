@@ -211,6 +211,18 @@ def training_orchestrator(message: func.ServiceBusMessage) -> None:
             logger.info("[%s] Saved cleaned dataset to %s/%s", training_id, data_container, cleaned_path)
             record_count = len(df)
 
+            # Save drift baselines (feature distributions for drift monitoring)
+            if is_full_retrain:
+                try:
+                    from modules.drift_detector import compute_feature_distributions
+                    distributions = compute_feature_distributions(df_imputed)
+                    artifacts_container.get_blob_client(
+                        "drift_baselines/feature_distributions.json"
+                    ).upload_blob(json.dumps(distributions), overwrite=True)
+                    logger.info("[%s] Saved drift baseline distributions (%d features)", training_id, len(distributions))
+                except Exception:
+                    logger.warning("[%s] Failed to save drift baselines", training_id)
+
         # Step 6: Notify Backend that training has started
         with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
             sender = sb_client.get_topic_sender(ServiceBusTopic.MODEL_TRAINING_STARTED.value)
@@ -467,6 +479,24 @@ def inference_orchestrator(message: func.ServiceBusMessage) -> None:
 
         logger.info("[%s] Inference fan-out complete (%d models)", request_id, len(topics))
 
+        # Accumulate features for drift monitoring (append to daily JSONL)
+        try:
+            from datetime import datetime, timezone
+            date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            drift_blob = f"inference_features/{date_str}.jsonl"
+            feature_line = json.dumps(features) + "\n"
+            try:
+                # Append to existing blob
+                existing = artifacts.get_blob_client(drift_blob).download_blob().readall().decode()
+                artifacts.get_blob_client(drift_blob).upload_blob(
+                    existing + feature_line, overwrite=True,
+                )
+            except Exception:
+                # First entry for today
+                artifacts.get_blob_client(drift_blob).upload_blob(feature_line, overwrite=True)
+        except Exception:
+            pass  # Non-critical — don't fail inference for drift logging
+
     except Exception:
         logger.exception("Inference orchestration failed for %s", request_id)
 
@@ -619,6 +649,103 @@ def prediction_result_collector(message: func.ServiceBusMessage) -> None:
 
     except Exception:
         logger.exception("Prediction result collection failed for %s", request_id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  DRIFT MONITORING
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@app.function_name("drift_monitor")
+@app.timer_trigger(schedule="0 0 0 * * 1", arg_name="timer")  # Weekly on Monday midnight UTC
+def drift_monitor(timer: func.TimerRequest) -> None:
+    """
+    Weekly drift detection (BLD Section 5.3, 10.1).
+
+    Compares training feature distributions against recent inference features.
+    If PSI > 0.20 on any Group A feature, publishes to drift-detected topic.
+    """
+    logger.info("Drift monitor started")
+
+    try:
+        from azure.storage.blob import BlobServiceClient
+        from modules.drift_detector import (
+            build_drift_message,
+            check_feature_drift,
+        )
+        import pandas as pd
+        from datetime import datetime, timedelta, timezone
+
+        blob_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION)
+        container = blob_client.get_container_client(IMPUTATION_PARAMS_CONTAINER)
+
+        # Load training baseline distributions
+        try:
+            baseline_raw = container.get_blob_client(
+                "drift_baselines/feature_distributions.json"
+            ).download_blob().readall()
+            baseline_distributions = json.loads(baseline_raw)
+        except Exception:
+            logger.warning("No drift baseline found — skipping drift check")
+            return
+
+        # Load baseline metrics
+        baseline_metrics = {}
+        try:
+            metrics_raw = container.get_blob_client(
+                "drift_baselines/baseline_metrics.json"
+            ).download_blob().readall()
+            baseline_metrics = json.loads(metrics_raw)
+        except Exception:
+            pass
+
+        # Load recent inference features (last 7 days)
+        now = datetime.now(timezone.utc)
+        all_features = []
+        for days_ago in range(7):
+            date_str = (now - timedelta(days=days_ago)).strftime("%Y-%m-%d")
+            blob_name = f"inference_features/{date_str}.jsonl"
+            try:
+                data = container.get_blob_client(blob_name).download_blob().readall().decode()
+                for line in data.strip().split("\n"):
+                    if line:
+                        all_features.append(json.loads(line))
+            except Exception:
+                continue
+
+        if len(all_features) < 50:
+            logger.info("Drift monitor: insufficient recent data (%d records, need 50+)", len(all_features))
+            return
+
+        recent_df = pd.DataFrame(all_features)
+        logger.info("Drift monitor: comparing %d recent records against baseline", len(recent_df))
+
+        # Compute drift
+        drift_result = check_feature_drift(baseline_distributions, recent_df)
+
+        if drift_result["recommendation"] == "retrain":
+            logger.warning(
+                "DRIFT DETECTED — %d features drifted, Group A drift: %s",
+                len(drift_result["drifted_features"]),
+                drift_result["has_group_a_drift"],
+            )
+            drift_msg = build_drift_message(drift_result, baseline_metrics)
+
+            with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
+                sender = sb_client.get_topic_sender("drift-detected")
+                with sender:
+                    sender.send_messages(ServiceBusMessage(json.dumps(drift_msg)))
+
+            logger.info("Drift alert published to drift-detected topic")
+        else:
+            logger.info(
+                "No significant drift — %d minor, %d significant",
+                len(drift_result["minor_drift_features"]),
+                len(drift_result["drifted_features"]),
+            )
+
+    except Exception:
+        logger.exception("Drift monitor failed")
 
 
 # ── Internal Helpers ────────────────────────────────────────────────────────

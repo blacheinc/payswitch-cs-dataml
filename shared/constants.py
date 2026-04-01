@@ -186,6 +186,9 @@ class ServiceBusTopic(str, Enum):
     PREDICTION_COMPLETE = "prediction-complete"               # New — Each agent → Orchestrator
     SCORING_COMPLETE = "scoring-complete"                     # New — Orchestrator → Backend
 
+    # Monitoring topics
+    DRIFT_DETECTED = "drift-detected"                        # Orchestrator → Orchestrator (triggers retraining)
+
 
 # ── Model Types ─────────────────────────────────────────────────────────────
 

@@ -68,6 +68,19 @@ def evaluate_model(
         metrics["recall"], metrics["log_loss"],
     )
 
+    # Fairness checks (BLD Section 9.2)
+    try:
+        from shared.fairness import run_fairness_checks
+        fairness = run_fairness_checks(y_holdout.values, y_pred_proba, X_holdout)
+        metrics["fairness_di_ratio"] = fairness["disparate_impact"]["di_ratio"]
+        metrics["fairness_fnr_gap"] = fairness["equal_opportunity"]["max_gap"]
+        metrics["fairness_passed"] = 1.0 if fairness["passed"] else 0.0
+        if not fairness["passed"]:
+            for v in fairness["violations"]:
+                logger.warning("FAIRNESS: %s", v)
+    except Exception:
+        logger.warning("Fairness checks skipped (missing applicant_age or insufficient data)")
+
     return metrics
 
 

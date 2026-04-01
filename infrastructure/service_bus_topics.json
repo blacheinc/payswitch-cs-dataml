@@ -142,6 +142,17 @@
       "subscriptions": [
         {"name": "backend-sub", "consumer": "backend"}
       ]
+    },
+    {
+      "name": "drift-detected",
+      "status": "CREATE",
+      "direction": "Orchestrator → Orchestrator",
+      "phase": "monitoring",
+      "note": "Weekly drift monitor publishes here. Can trigger retraining flow.",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"},
+        {"name": "monitoring-sub", "consumer": "monitoring"}
+      ]
     }
   ]
 }
