@@ -161,7 +161,7 @@ def load_champion_model() -> tuple[xgb.XGBClassifier, str, dict[str, float] | No
             raise RuntimeError(f"No model found for {REGISTRY_NAME}")
 
         latest = max(models, key=lambda m: int(m.version))
-        download_dir = f"./{REGISTRY_NAME}"
+        download_dir = f"/tmp/{REGISTRY_NAME}"
         ml_client.models.download(name=REGISTRY_NAME, version=latest.version, download_path=download_dir)
 
         # Find model file (.ubj or .xgb)
@@ -187,8 +187,6 @@ def load_champion_model() -> tuple[xgb.XGBClassifier, str, dict[str, float] | No
         logger.info("Loaded model %s v%s from Azure ML", REGISTRY_NAME, latest.version)
         return model, latest.version, calibration_params
 
-    except Exception:
-        logger.exception("Failed to load from Azure ML — falling back to local MLflow")
-        model_uri = f"models:/{REGISTRY_NAME}/latest"
-        model = mlflow.xgboost.load_model(model_uri)
-        return model, "local", None
+    except Exception as exc:
+        logger.exception("Failed to load from Azure ML")
+        raise RuntimeError(f"Cannot load model: {type(exc).__name__}: {exc}") from exc

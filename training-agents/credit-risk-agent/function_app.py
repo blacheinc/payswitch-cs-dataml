@@ -174,8 +174,24 @@ def credit_risk_predict(message: func.ServiceBusMessage) -> None:
             request_id, probability_of_default,
         )
 
-    except Exception:
+    except Exception as exc:
         logger.exception("Credit Risk prediction failed: %s", request_id)
+        # Publish error result so orchestrator doesn't hang
+        try:
+            error_result = CreditRiskPredictionResult(
+                request_id=request_id,
+                probability_of_default=0.5,
+                pd_confidence=0.0,
+                shap_contributions=[],
+                decision_reason_codes=[],
+                model_version=f"ERROR:{type(exc).__name__}:{str(exc)[:200]}",
+            )
+            with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
+                sender = sb_client.get_topic_sender(ServiceBusTopic.PREDICTION_COMPLETE.value)
+                with sender:
+                    sender.send_messages(ServiceBusMessage(error_result.to_json()))
+        except Exception:
+            logger.exception("Failed to publish prediction error for %s", request_id)
 
 
 def _publish_failure(training_id: str, error: str) -> None:

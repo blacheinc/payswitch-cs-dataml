@@ -155,7 +155,7 @@ def load_champion_models() -> tuple[lgb.LGBMRegressor, Ridge, xgb.XGBRegressor, 
             raise RuntimeError(f"No model found for {REGISTRY_NAME}")
 
         latest = max(models, key=lambda m: int(m.version))
-        download_dir = f"./{REGISTRY_NAME}"
+        download_dir = f"/tmp/{REGISTRY_NAME}"
         ml_client.models.download(name=REGISTRY_NAME, version=latest.version, download_path=download_dir)
 
         pkl_files = glob.glob(os.path.join(download_dir, "**", "lgbm_model.pkl"), recursive=True)
