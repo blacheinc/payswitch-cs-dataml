@@ -100,6 +100,32 @@ class InferenceRequestMessage(BaseMessage):
 
 
 @dataclass
+class BatchScoreRequestMessage(BaseMessage):
+    """Backend → Orchestrator: score a batch of applicants asynchronously.
+
+    Each applicant in `applicants` is a dict with keys:
+      - request_id: str
+      - features: dict[str, Optional[float]]
+      - metadata: dict[str, Any]
+    """
+    job_id: str
+    requested_at: str
+    applicants: list[dict[str, Any]] = field(default_factory=list)
+    models_to_run: list[str] = field(default_factory=lambda: ["all"])
+
+
+@dataclass
+class BatchScoreCompleteMessage(BaseMessage):
+    """Orchestrator → Backend: all applicants in a batch have been scored."""
+    job_id: str
+    completed_at: str
+    total: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    results_blob_path: str = ""  # batch/{job_id}/results.jsonl
+
+
+@dataclass
 class PredictMessage(BaseMessage):
     """Orchestrator → Model Agent: run inference on these features."""
     request_id: str

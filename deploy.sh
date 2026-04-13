@@ -26,6 +26,7 @@ CREDIT_RISK_APP="payswitch-cs-credit-risk"
 FRAUD_DETECTION_APP="payswitch-cs-fraud-detection"
 LOAN_AMOUNT_APP="payswitch-cs-loan-amount"
 INCOME_VERIFICATION_APP="payswitch-cs-income-verification"
+CUSTOMER_SERVICE_APP="payswitch-cs-customer-service"
 
 # ── App directory mapping ────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ declare -A APP_DIRS=(
     [fraud-detection]="training-agents/fraud-detection-agent"
     [loan-amount]="training-agents/loan-amount-agent"
     [income-verification]="training-agents/income-verification-agent"
+    [customer-service]="customer-service-agent"
 )
 
 declare -A APP_NAMES=(
@@ -45,9 +47,10 @@ declare -A APP_NAMES=(
     [fraud-detection]="$FRAUD_DETECTION_APP"
     [loan-amount]="$LOAN_AMOUNT_APP"
     [income-verification]="$INCOME_VERIFICATION_APP"
+    [customer-service]="$CUSTOMER_SERVICE_APP"
 )
 
-ALL_APPS=(orchestrator credit-risk fraud-detection loan-amount income-verification)
+ALL_APPS=(orchestrator credit-risk fraud-detection loan-amount income-verification customer-service)
 
 # Default ports for local dev (each app needs a unique port)
 declare -A APP_PORTS=(
@@ -56,6 +59,7 @@ declare -A APP_PORTS=(
     [fraud-detection]="7073"
     [loan-amount]="7074"
     [income-verification]="7075"
+    [customer-service]="7076"
 )
 
 # ── Deploy function ──────────────────────────────────────────────────────────
@@ -135,7 +139,8 @@ usage() {
     echo "  fraud-detection       Deploy fraud detection agent"
     echo "  loan-amount           Deploy loan amount agent"
     echo "  income-verification   Deploy income verification agent"
-    echo "  all                   Deploy all 5 Function Apps"
+    echo "  customer-service      Deploy customer service agent (LLM NL endpoint)"
+    echo "  all                   Deploy all 6 Function Apps"
     echo ""
     echo "Local dev:"
     echo "  local <app>           Copy shared/, run func start, clean up on exit"
@@ -160,7 +165,7 @@ case "$1" in
         fi
         local_start "$2"
         ;;
-    orchestrator|credit-risk|fraud-detection|loan-amount|income-verification)
+    orchestrator|credit-risk|fraud-detection|loan-amount|income-verification|customer-service)
         deploy_one "$1"
         ;;
     all)

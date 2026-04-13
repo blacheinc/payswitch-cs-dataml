@@ -153,6 +153,26 @@
         {"name": "orchestrator-sub", "consumer": "orchestrator"},
         {"name": "monitoring-sub", "consumer": "monitoring"}
       ]
+    },
+    {
+      "name": "batch-score-request",
+      "status": "CREATE",
+      "direction": "Backend → Orchestrator",
+      "phase": "inference",
+      "note": "Backend submits batch scoring jobs (list of applicants + job_id). Orchestrator fans out per applicant via existing inference pipeline.",
+      "subscriptions": [
+        {"name": "orchestrator-sub", "consumer": "orchestrator"}
+      ]
+    },
+    {
+      "name": "batch-score-complete",
+      "status": "CREATE",
+      "direction": "Orchestrator → Backend",
+      "phase": "inference",
+      "note": "Published when all applicants in a batch have been scored.",
+      "subscriptions": [
+        {"name": "backend-sub", "consumer": "backend"}
+      ]
     }
   ]
 }

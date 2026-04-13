@@ -186,6 +186,10 @@ class ServiceBusTopic(str, Enum):
     PREDICTION_COMPLETE = "prediction-complete"               # New — Each agent → Orchestrator
     SCORING_COMPLETE = "scoring-complete"                     # New — Orchestrator → Backend
 
+    # Batch scoring topics
+    BATCH_SCORE_REQUEST = "batch-score-request"              # Backend → Orchestrator
+    BATCH_SCORE_COMPLETE = "batch-score-complete"            # Orchestrator → Backend
+
     # Monitoring topics
     DRIFT_DETECTED = "drift-detected"                        # Orchestrator → Orchestrator (triggers retraining)
 

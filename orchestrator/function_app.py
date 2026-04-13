@@ -365,6 +365,29 @@ def training_result_collector(message: func.ServiceBusMessage) -> None:
                 "All training complete for %s (%d/%d models, status=%s)",
                 training_id, len(results), len(expected_models), complete_msg.status,
             )
+
+            # Refresh champion snapshot for Backend GET /v1/models/current (Work Item 2)
+            try:
+                from azure.ai.ml import MLClient
+                from azure.identity import DefaultAzureCredential
+                from modules.champion_store import build_champion_snapshot, save_champion_snapshot
+
+                ml_client = MLClient(
+                    credential=DefaultAzureCredential(),
+                    subscription_id=os.environ.get("AZURE_ML_SUBSCRIPTION_ID", ""),
+                    resource_group_name=os.environ.get("AZURE_ML_RESOURCE_GROUP", ""),
+                    workspace_name=os.environ.get("AZURE_ML_WORKSPACE_NAME", ""),
+                )
+                snapshot = build_champion_snapshot(ml_client)
+                save_champion_snapshot(blob_client, snapshot)
+                logger.info(
+                    "[%s] Champion snapshot refreshed (%d models)",
+                    training_id, len(snapshot["models"]),
+                )
+            except Exception:
+                logger.exception(
+                    "[%s] Failed to refresh champion snapshot — non-critical", training_id,
+                )
         else:
             logger.info(
                 "[%s] Received %d/%d results — waiting for more",
@@ -499,6 +522,74 @@ def inference_orchestrator(message: func.ServiceBusMessage) -> None:
 
     except Exception:
         logger.exception("Inference orchestration failed for %s", request_id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  BATCH SCORING (BLD Section 8.3 — POST /v1/score/batch)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@app.function_name("batch_score_orchestrator")
+@app.service_bus_topic_trigger(
+    arg_name="message",
+    topic_name="batch-score-request",
+    subscription_name="orchestrator-sub",
+    connection="SERVICE_BUS_CONNECTION",
+)
+def batch_score_orchestrator(message: func.ServiceBusMessage) -> None:
+    """
+    Handle batch scoring request from Backend.
+
+    1. Parse batch message (job_id + list of applicants + models_to_run)
+    2. Initialize batch manifest and status in blob
+    3. For each applicant, publish to inference-request topic with batch_job_id in metadata
+    4. Existing inference pipeline scores each applicant
+    5. prediction_result_collector appends batch results via _run_final_decision
+    6. When all applicants complete, batch-score-complete is published
+    """
+    raw = message.get_body().decode("utf-8")
+    data = json.loads(raw)
+    job_id = data.get("job_id", "unknown")
+    applicants = data.get("applicants", [])
+    models_to_run = data.get("models_to_run", ["all"])
+    requested_at = data.get("requested_at", utc_now_iso())
+
+    logger.info("Batch scoring started: job=%s applicants=%d", job_id, len(applicants))
+
+    try:
+        from azure.storage.blob import BlobServiceClient
+        from modules.batch_store import init_batch_manifest
+
+        blob_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION)
+        init_batch_manifest(
+            blob_client,
+            job_id=job_id,
+            total=len(applicants),
+            models_to_run=models_to_run,
+            requested_at=requested_at,
+        )
+
+        # Publish each applicant as an individual inference-request with batch_job_id in metadata
+        with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
+            sender = sb_client.get_topic_sender(ServiceBusTopic.INFERENCE_REQUEST.value)
+            with sender:
+                for i, applicant in enumerate(applicants):
+                    request_id = applicant.get("request_id") or f"{job_id}-{i:05d}"
+                    metadata = dict(applicant.get("metadata", {}))
+                    metadata["batch_job_id"] = job_id  # flag so _run_final_decision appends to batch results
+
+                    inference_msg = {
+                        "request_id": request_id,
+                        "features": applicant.get("features", {}),
+                        "metadata": metadata,
+                        "models_to_run": models_to_run,
+                    }
+                    sender.send_messages(ServiceBusMessage(json.dumps(inference_msg)))
+
+        logger.info("Batch fan-out complete: job=%s published=%d", job_id, len(applicants))
+
+    except Exception:
+        logger.exception("Batch score orchestration failed: job=%s", job_id)
 
 
 @app.function_name("prediction_result_collector")
@@ -849,6 +940,49 @@ def _run_final_decision(
         refer_reasons=decision_result.refer_reasons,
     )
 
+    # Persist immutable audit record before publishing (BLD Section 9.3)
+    try:
+        from azure.storage.blob import BlobServiceClient
+        from modules.audit_store import persist_decision_audit
+        audit_blob_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION)
+        audit_path = persist_decision_audit(audit_blob_client, scoring_response)
+        logger.info("[%s] Audit record persisted to %s", request_id, audit_path)
+    except Exception:
+        logger.exception("[%s] Failed to persist audit record — continuing with publish", request_id)
+
+    # If part of a batch, append to batch results and mark complete if last
+    batch_job_id = metadata.get("batch_job_id")
+    if batch_job_id:
+        try:
+            from azure.storage.blob import BlobServiceClient
+            from modules.batch_store import (
+                append_batch_result,
+                get_batch_status,
+                is_batch_complete,
+                results_blob_path,
+            )
+            from shared.schemas.message_schemas import BatchScoreCompleteMessage
+
+            batch_blob_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION)
+            append_batch_result(batch_blob_client, batch_job_id, scoring_response.to_dict())
+            status = get_batch_status(batch_blob_client, batch_job_id)
+            if status and is_batch_complete(status):
+                logger.info("[%s] Batch job %s complete — publishing batch-score-complete", request_id, batch_job_id)
+                batch_msg = BatchScoreCompleteMessage(
+                    job_id=batch_job_id,
+                    completed_at=utc_now_iso(),
+                    total=status.get("total", 0),
+                    succeeded=status.get("completed", 0),
+                    failed=status.get("failed", 0),
+                    results_blob_path=results_blob_path(batch_job_id),
+                )
+                with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
+                    sender = sb_client.get_topic_sender(ServiceBusTopic.BATCH_SCORE_COMPLETE.value)
+                    with sender:
+                        sender.send_messages(ServiceBusMessage(batch_msg.to_json()))
+        except Exception:
+            logger.exception("[%s] Failed to update batch state for job %s", request_id, batch_job_id)
+
     # Publish to scoring-complete
     with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
         sender = sb_client.get_topic_sender(ServiceBusTopic.SCORING_COMPLETE.value)
@@ -885,14 +1019,25 @@ def _publish_scoring_error(
     errors: list[str],
     metadata: dict,
 ) -> None:
-    """Publish an error response to scoring-complete."""
+    """Publish an error response to scoring-complete and persist error audit."""
+    timestamp = utc_now_iso()
     error_response = {
         "request_id": request_id,
-        "scoring_timestamp": utc_now_iso(),
+        "scoring_timestamp": timestamp,
         "decision": "ERROR",
         "errors": errors,
         "scoring_metadata": metadata,
     }
+
+    # Persist error audit (BLD Section 9.3 — errors are auditable too)
+    try:
+        from azure.storage.blob import BlobServiceClient
+        from modules.audit_store import persist_error_audit
+        audit_blob_client = BlobServiceClient.from_connection_string(STORAGE_CONNECTION)
+        persist_error_audit(audit_blob_client, request_id, errors, metadata, timestamp)
+    except Exception:
+        logger.exception("[%s] Failed to persist error audit — continuing", request_id)
+
     try:
         with ServiceBusClient.from_connection_string(SERVICE_BUS_CONNECTION) as sb_client:
             sender = sb_client.get_topic_sender(ServiceBusTopic.SCORING_COMPLETE.value)
@@ -900,3 +1045,50 @@ def _publish_scoring_error(
                 sender.send_messages(ServiceBusMessage(json.dumps(error_response)))
     except Exception:
         logger.exception("Failed to publish scoring error for %s", request_id)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  HTTP API — Rules Sandbox (BLD Section 8.3)
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@app.function_name("api_evaluate_rules")
+@app.route(route="v1/rules/evaluate", auth_level=func.AuthLevel.FUNCTION, methods=["POST"])
+def api_evaluate_rules(req: func.HttpRequest) -> func.HttpResponse:
+    """
+    Sandbox rule evaluation. Runs the decision engine against caller-provided
+    inputs without touching real data. Returns ScoringResponse-shaped dict
+    with sandbox=True.
+    """
+    from modules.rules_sandbox import evaluate_rules
+
+    try:
+        payload = req.get_json()
+    except ValueError:
+        return func.HttpResponse(
+            json.dumps({"error": "bad_request", "detail": "Body must be valid JSON"}),
+            status_code=400,
+            mimetype="application/json",
+        )
+
+    try:
+        body = evaluate_rules(payload)
+        logger.info("Rules sandbox evaluation: decision=%s", body.get("decision"))
+        return func.HttpResponse(
+            json.dumps(body, default=str),
+            status_code=200,
+            mimetype="application/json",
+        )
+    except ValueError as ve:
+        return func.HttpResponse(
+            json.dumps({"error": "validation_error", "detail": str(ve)}),
+            status_code=422,
+            mimetype="application/json",
+        )
+    except Exception:
+        logger.exception("api_evaluate_rules failed")
+        return func.HttpResponse(
+            json.dumps({"error": "internal_error"}),
+            status_code=500,
+            mimetype="application/json",
+        )
