@@ -17,7 +17,8 @@
 7. [First training run](#7-first-training-run)
 8. [Smoke tests](#8-smoke-tests)
 9. [Hand off to Backend & Data Engineering](#9-hand-off-to-backend--data-engineering)
-10. [Troubleshooting](#10-troubleshooting)
+10. [Ongoing operations & longevity](#10-ongoing-operations--longevity)
+11. [Troubleshooting](#11-troubleshooting)
 
 ---
 
@@ -739,7 +740,177 @@ az role assignment create --assignee "<DATA_ENG_PID>" \
 
 ---
 
-## 10. Troubleshooting
+## 10. Ongoing operations & longevity
+
+Standing the system up is only half the job. This section covers the four built-in features that keep it healthy over time: drift monitoring, champion-challenger promotion, audit retention, and observability. Everything here uses code already in the repo — your job as the operator is to know they exist, verify they're configured, and know how to check on them.
+
+### 10.1 Drift monitoring
+
+The orchestrator includes a **weekly timer trigger** (`drift_monitor`) that runs every Monday at midnight UTC (`schedule="0 0 0 * * 1"`). It compares the live feature distribution from the last 7 days of inference against the baseline distribution saved during training, using Population Stability Index (PSI) as the metric.
+
+PSI thresholds:
+- `PSI < 0.10` — no drift (normal)
+- `0.10 ≤ PSI < 0.20` — minor drift (logged as warning, no alert)
+- `PSI ≥ 0.20` — significant drift → publish to `drift-detected` topic, trigger retraining workflow
+
+**What populates the baseline:** the orchestrator saves training feature distributions to `model-artifacts/drift_baselines/feature_distributions.json` during each training run. Drift monitoring only produces meaningful results *after* the first training run completes.
+
+**What populates the live side:** every inference request appends its feature vector to `model-artifacts/inference_features/{YYYY-MM-DD}.jsonl`. The monitor needs at least 50 records from the last 7 days to run — it silently skips the check otherwise.
+
+**Subscribing to alerts:** `drift-detected` is one of the 18 Service Bus topics provisioned in Section 3.3. Attach your own subscription (or hook an Azure Monitor alert rule) to receive notifications:
+
+```bash
+az servicebus topic subscription create \
+  --resource-group "$DATA_RG" \
+  --namespace-name "$SB_NS" \
+  --topic-name drift-detected \
+  --name ops-alerts
+```
+
+**Verifying the monitor is live:** check the orchestrator's function list after deploy:
+
+```bash
+az functionapp function show \
+  --name "$APP_ORCH" --resource-group "$ML_RG" \
+  --function-name drift_monitor \
+  --query "{name:name, disabled:config.disabled}"
+```
+
+### 10.2 Champion-challenger promotion gate
+
+Every training run ends with an automatic comparison: if the newly trained model does *not* beat the current production champion on its key metric, it is **not** registered in the Azure ML model registry. Production keeps running the old champion. No operator action is required — this happens inside each training agent's `registry.py` automatically.
+
+Comparison metric per model:
+- **Credit risk** — AUC (area under the ROC curve)
+- **Income verification** — weighted F1
+- **Loan amount** — ensemble R²
+- **Fraud detection** — unsupervised, always promotes (thresholds get recalibrated each run)
+
+**How to spot a rejection:** rejected runs publish to `model-training-completed` with a `version` string prefixed `REJECTED:` instead of a numeric version. Scan recent messages:
+
+```bash
+az servicebus topic subscription show \
+  --resource-group "$DATA_RG" \
+  --namespace-name "$SB_NS" \
+  --topic-name model-training-completed \
+  --name cs-backend \
+  --query messageCount
+```
+
+Or read from the `model-artifacts/training/{training_id}/{model_type}.json` blobs directly — `version` is one of the top-level fields.
+
+**Forcing a promotion (emergency only):** if the current champion is corrupted and you need to let a challenger through, archive the champion in the registry, then re-trigger training. The challenger becomes the first model of its kind and is auto-promoted on the next run.
+
+```bash
+az ml model archive \
+  --name credit-scoring-risk-xgboost \
+  --version <bad-version> \
+  --resource-group "$ML_RG" \
+  --workspace-name "$WORKSPACE"
+```
+
+Use this path rarely and document why — the gate exists for a reason.
+
+### 10.3 Audit retention lifecycle
+
+BLD Section 9.3 requires credit decisions to be retained for at least **8 years**. Every decision is already written to `model-artifacts/decisions/{YYYY-MM-DD}/{request_id}.json` with `overwrite=False` (immutable). What's missing from the default deploy is the **storage lifecycle policy** that tiers old records to cheaper storage and enforces deletion at 8 years.
+
+Save this as `lifecycle_policy.json` at the repo root:
+
+```json
+{
+  "rules": [
+    {
+      "enabled": true,
+      "name": "decisions-audit-retention",
+      "type": "Lifecycle",
+      "definition": {
+        "filters": {
+          "blobTypes": ["blockBlob"],
+          "prefixMatch": ["model-artifacts/decisions/"]
+        },
+        "actions": {
+          "baseBlob": {
+            "tierToCool": {"daysAfterModificationGreaterThan": 90},
+            "tierToArchive": {"daysAfterModificationGreaterThan": 365},
+            "delete": {"daysAfterModificationGreaterThan": 2922}
+          }
+        }
+      }
+    }
+  ]
+}
+```
+
+Apply it:
+
+```bash
+az storage account management-policy create \
+  --account-name "$STORAGE" \
+  --resource-group "$DATA_RG" \
+  --policy @lifecycle_policy.json
+```
+
+Verify:
+
+```bash
+az storage account management-policy show \
+  --account-name "$STORAGE" \
+  --resource-group "$DATA_RG" \
+  --query "policy.rules[?name=='decisions-audit-retention']"
+```
+
+> Run this policy creation once per deployment. It applies retroactively to existing blobs, so the ordering doesn't matter much, but do it before handing the system off to Backend.
+
+### 10.4 Observability — Application Insights
+
+Without telemetry, diagnosing a production issue means tailing Function App logs one by one. Strongly recommend attaching all 6 Function Apps to an Application Insights instance. The Azure ML workspace created in Section 3.4 auto-provisioned one — reuse it, or create a dedicated one.
+
+Get the connection string:
+
+```bash
+# List Application Insights resources in the ML resource group
+az monitor app-insights component show \
+  --resource-group "$ML_RG" \
+  --query "[].{name:name, connectionString:connectionString}" \
+  --output table
+
+# Pick one and export its connection string
+export AI_CONN="<connection-string-from-above>"
+```
+
+Attach to all 6 Function Apps:
+
+```bash
+for app in "$APP_ORCH" "$APP_RISK" "$APP_FRAUD" "$APP_LOAN" "$APP_INCOME" "$APP_CS"; do
+  az functionapp config appsettings set \
+    --name "$app" --resource-group "$ML_RG" \
+    --settings APPLICATIONINSIGHTS_CONNECTION_STRING="$AI_CONN"
+done
+```
+
+**What to watch** in the Application Insights dashboard:
+- **Request latency** for the two HTTP endpoints (`api_evaluate_rules`, `api_explain`) — spikes indicate cold starts or downstream issues
+- **Exception rate on the orchestrator** — every failure writes an `.error.json` audit record, so exception count should roughly match compliance error audits
+- **Drift alerts** — the `drift_monitor` function logs a `DRIFT DETECTED` warning with the count of drifted features
+- **Training success rate** — `training_result_collector` logs per-model success/failure; a streak of failures usually means upstream data changed shape
+
+### 10.5 Health check cadence
+
+One routine covering everything above. Bookmark this table.
+
+| Check | Frequency | How |
+|---|---|---|
+| `champions/current.json` is fresh | After each training run | `az storage blob show` on the blob — verify `updated_at` within ~1h of training completion |
+| Drift alerts | Weekly (Monday AM) | Watch `drift-detected` subscription; confirm at minimum that the `drift_monitor` timer ran by checking Application Insights for its invocation log |
+| Champion-challenger rejections | After each training run | Scan `model-training-completed` or read the per-model result blobs for `version` strings starting with `REJECTED:` |
+| Audit retention policy active | Once at deploy + yearly audit | `az storage account management-policy show` returns the rule and `enabled: true` |
+| Function App exceptions | Daily | Application Insights dashboard — exceptions by operation |
+| Decision audit sampling | Quarterly compliance review | Read 20 random `decisions/{date}/{request_id}.json` blobs; verify required fields present (decision, reason codes, SHAP contributions) |
+
+---
+
+## 11. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
