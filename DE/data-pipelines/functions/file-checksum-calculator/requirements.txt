@@ -1,0 +1,11 @@
+# Azure Functions dependencies
+azure-functions==1.18.0
+# Note: azure-functions-worker is managed by the Azure Functions platform - do not include it
+
+# Azure SDK
+azure-identity==1.15.0
+azure-storage-blob==12.19.0
+azure-storage-file-datalake==12.14.0
+
+# Utilities
+python-dateutil==2.8.2

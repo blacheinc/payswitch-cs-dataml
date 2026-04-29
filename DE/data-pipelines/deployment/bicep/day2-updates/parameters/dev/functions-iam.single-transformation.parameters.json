@@ -1,0 +1,38 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionApps": {
+      "value": [
+        {
+          "name": "blache-cdtscr-dev-transform-y27jgavel2x32",
+          "resourceGroupName": "blache-cdtscr-dev-data-rg"
+        }
+      ]
+    },
+    "excludedFunctionAppNames": {
+      "value": []
+    },
+    "blobStorageAccountName": {
+      "value": "blachedly27jgavel2x32"
+    },
+    "dataLakeStorageAccountName": {
+      "value": "blachedly27jgavel2x32"
+    },
+    "storageResourceGroupName": {
+      "value": "blache-cdtscr-dev-data-rg"
+    },
+    "keyVaultName": {
+      "value": "blachekvruhclai6km"
+    },
+    "keyVaultResourceGroupName": {
+      "value": "blache-cdtscr-dev-data-rg"
+    },
+    "serviceBusNamespaceName": {
+      "value": "blache-cdtscr-dev-sb-y27jgavel2x32"
+    },
+    "serviceBusResourceGroupName": {
+      "value": "blache-cdtscr-dev-data-rg"
+    }
+  }
+}

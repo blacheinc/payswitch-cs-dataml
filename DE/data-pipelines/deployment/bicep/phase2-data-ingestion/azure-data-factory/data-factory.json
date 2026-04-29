@@ -1,0 +1,641 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "5894224774597467686"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "deploymentEnvironment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment (dev, staging, prod)"
+      }
+    },
+    "dataLakeStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Data Lake Storage Account Name"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault Name for secrets"
+      }
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Service Bus Namespace Name"
+      }
+    },
+    "sourceBlobStorageAccountName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Source blob storage account name used for awaits-ingestion input"
+      }
+    },
+    "metadataPostgresServerFqdn": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Metadata PostgreSQL server FQDN (without protocol)"
+      }
+    },
+    "privateNetworkMode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable private networking posture for Data Factory (disables public access on the factory resource)"
+      }
+    },
+    "deployLegacyStarterCatalog": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "When true, deploys the older sample/master pipelines and extra linked services (not in support-live export)."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    }
+  },
+  "variables": {
+    "dataLakeDfsUrl": "[format('https://{0}.dfs.{1}/', parameters('dataLakeStorageAccountName'), environment().suffixes.storage)]",
+    "sourceBlobEndpoint": "[if(empty(parameters('sourceBlobStorageAccountName')), '', format('https://{0}.blob.{1}/', parameters('sourceBlobStorageAccountName'), environment().suffixes.storage))]",
+    "managedVnetName": "default",
+    "integrationRuntimeName": "integrationRuntime1",
+    "keyVaultLinkedServiceName": "key_vault_ls",
+    "dataIngestedLinkedServiceName": "data_ingested_ls",
+    "dataAwaitsIngestionLinkedServiceName": "data_awaits_ingestion_ls",
+    "metadataPostgresLinkedServiceName": "metadata_postgres_ls",
+    "dataFactoryName": "[format('{0}-adf-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+    "managedIdentityName": "[format('{0}-identity', variables('dataFactoryName'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "apiVersion": "2023-01-31",
+      "name": "[variables('managedIdentityName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.DataFactory/factories",
+      "apiVersion": "2018-06-01",
+      "name": "[variables('dataFactoryName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned,UserAssigned",
+        "userAssignedIdentities": {
+          "[format('{0}', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName')))]": {}
+        }
+      },
+      "properties": {
+        "publicNetworkAccess": "[if(parameters('privateNetworkMode'), 'Disabled', 'Enabled')]",
+        "globalParameters": {
+          "environment": {
+            "type": "String",
+            "value": "[parameters('deploymentEnvironment')]"
+          },
+          "dataLakeStorageAccount": {
+            "type": "String",
+            "value": "[parameters('dataLakeStorageAccountName')]"
+          },
+          "blobStorageAccount": {
+            "type": "String",
+            "value": "[parameters('sourceBlobStorageAccountName')]"
+          },
+          "keyVaultName": {
+            "type": "String",
+            "value": "[parameters('keyVaultName')]"
+          },
+          "serviceBusNamespace": {
+            "type": "String",
+            "value": "[parameters('serviceBusNamespaceName')]"
+          },
+          "serviceBusAPIVersion": {
+            "type": "String",
+            "value": "api-version=2017-04"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/managedVirtualNetworks",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('managedVnetName'))]",
+      "properties": {},
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/integrationRuntimes",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('integrationRuntimeName'))]",
+      "properties": {
+        "type": "Managed",
+        "typeProperties": {
+          "computeProperties": {
+            "location": "[parameters('location')]",
+            "dataFlowProperties": {
+              "computeType": "General",
+              "coreCount": 8,
+              "timeToLive": 10,
+              "cleanup": false,
+              "customProperties": []
+            },
+            "pipelineExternalComputeScaleProperties": {
+              "timeToLive": 60,
+              "numberOfPipelineNodes": 1,
+              "numberOfExternalNodes": 1
+            }
+          }
+        },
+        "managedVirtualNetwork": {
+          "type": "ManagedVirtualNetworkReference",
+          "referenceName": "[variables('managedVnetName')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/managedVirtualNetworks', variables('dataFactoryName'), variables('managedVnetName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('keyVaultLinkedServiceName'))]",
+      "properties": {
+        "type": "AzureKeyVault",
+        "annotations": [],
+        "typeProperties": {
+          "baseUrl": "[format('https://{0}{1}/', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('dataIngestedLinkedServiceName'))]",
+      "properties": {
+        "type": "AzureBlobFS",
+        "annotations": [],
+        "typeProperties": {
+          "url": "[variables('dataLakeDfsUrl')]"
+        },
+        "connectVia": {
+          "referenceName": "[variables('integrationRuntimeName')]",
+          "type": "IntegrationRuntimeReference"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/integrationRuntimes', variables('dataFactoryName'), variables('integrationRuntimeName'))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('sourceBlobStorageAccountName')))]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('dataAwaitsIngestionLinkedServiceName'))]",
+      "properties": {
+        "type": "AzureBlobStorage",
+        "annotations": [],
+        "typeProperties": {
+          "serviceEndpoint": "[variables('sourceBlobEndpoint')]",
+          "accountKind": "StorageV2"
+        },
+        "connectVia": {
+          "referenceName": "[variables('integrationRuntimeName')]",
+          "type": "IntegrationRuntimeReference"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/integrationRuntimes', variables('dataFactoryName'), variables('integrationRuntimeName'))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('metadataPostgresServerFqdn')))]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), variables('metadataPostgresLinkedServiceName'))]",
+      "properties": {
+        "type": "AzurePostgreSql",
+        "annotations": [],
+        "typeProperties": {
+          "server": "[parameters('metadataPostgresServerFqdn')]",
+          "database": "postgres",
+          "username": "postgres_admin",
+          "encryptedCredential": "",
+          "password": {
+            "type": "AzureKeyVaultSecret",
+            "store": {
+              "type": "LinkedServiceReference",
+              "referenceName": "[variables('keyVaultLinkedServiceName')]"
+            },
+            "secretName": "postgres-admin-password"
+          }
+        },
+        "connectVia": {
+          "referenceName": "[variables('integrationRuntimeName')]",
+          "type": "IntegrationRuntimeReference"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/integrationRuntimes', variables('dataFactoryName'), variables('integrationRuntimeName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), variables('keyVaultLinkedServiceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'AzureKeyVault')]",
+      "properties": {
+        "type": "AzureKeyVault",
+        "typeProperties": {
+          "baseUrl": "[format('https://{0}{1}/', parameters('keyVaultName'), environment().suffixes.keyvaultDns)]"
+        },
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'AzureDataLakeStorage')]",
+      "properties": {
+        "type": "AzureBlobFS",
+        "typeProperties": {
+          "url": "[variables('dataLakeDfsUrl')]",
+          "accountKey": {
+            "type": "AzureKeyVaultSecret",
+            "store": {
+              "referenceName": "AzureKeyVault",
+              "type": "LinkedServiceReference"
+            },
+            "secretName": "data-lake-storage-key"
+          }
+        },
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'AzureKeyVault')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'AzureServiceBus')]",
+      "properties": {
+        "type": "AzureServiceBus",
+        "typeProperties": {
+          "connectionString": {
+            "type": "AzureKeyVaultSecret",
+            "store": {
+              "referenceName": "AzureKeyVault",
+              "type": "LinkedServiceReference"
+            },
+            "secretName": "service-bus-connection-string"
+          }
+        },
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'AzureKeyVault')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/linkedservices",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'RestApiGeneric')]",
+      "properties": {
+        "type": "RestService",
+        "typeProperties": {
+          "url": "https://api.example.com",
+          "enableServerCertificateValidation": true,
+          "authenticationType": "Anonymous"
+        },
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/datasets",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'RawDataLakeJson')]",
+      "properties": {
+        "linkedServiceName": {
+          "referenceName": "AzureDataLakeStorage",
+          "type": "LinkedServiceReference"
+        },
+        "parameters": {
+          "folderPath": {
+            "type": "String"
+          },
+          "fileName": {
+            "type": "String"
+          }
+        },
+        "type": "Json",
+        "typeProperties": {
+          "location": {
+            "type": "AzureBlobFSLocation",
+            "folderPath": {
+              "value": "@dataset().folderPath",
+              "type": "Expression"
+            },
+            "fileName": {
+              "value": "@dataset().fileName",
+              "type": "Expression"
+            },
+            "fileSystem": "raw"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'AzureDataLakeStorage')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/datasets",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'ProcessedDataLakeParquet')]",
+      "properties": {
+        "linkedServiceName": {
+          "referenceName": "AzureDataLakeStorage",
+          "type": "LinkedServiceReference"
+        },
+        "parameters": {
+          "folderPath": {
+            "type": "String"
+          }
+        },
+        "type": "Parquet",
+        "typeProperties": {
+          "location": {
+            "type": "AzureBlobFSLocation",
+            "folderPath": {
+              "value": "@dataset().folderPath",
+              "type": "Expression"
+            },
+            "fileSystem": "processed"
+          },
+          "compressionCodec": "snappy"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'AzureDataLakeStorage')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/datasets",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'ServiceBusMessage')]",
+      "properties": {
+        "linkedServiceName": {
+          "referenceName": "AzureServiceBus",
+          "type": "LinkedServiceReference"
+        },
+        "parameters": {
+          "topicName": {
+            "type": "String"
+          }
+        },
+        "type": "AzureServiceBusMessage",
+        "typeProperties": {
+          "topicName": {
+            "value": "@dataset().topicName",
+            "type": "Expression"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'AzureServiceBus')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/pipelines",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'CreditBureauIngestionPipeline')]",
+      "properties": {
+        "activities": [
+          {
+            "name": "CallCreditBureauAPI",
+            "type": "Copy",
+            "dependsOn": [],
+            "policy": {
+              "timeout": "0.00:10:00",
+              "retry": 3,
+              "retryIntervalInSeconds": 30
+            },
+            "userProperties": [],
+            "typeProperties": {
+              "source": {
+                "type": "RestSource",
+                "httpRequestTimeout": "00:05:00",
+                "requestInterval": "00.00:00:00.010"
+              },
+              "sink": {
+                "type": "JsonSink",
+                "storeSettings": {
+                  "type": "AzureBlobFSWriteSettings"
+                },
+                "formatSettings": {
+                  "type": "JsonWriteSettings"
+                }
+              },
+              "enableStaging": false
+            },
+            "inputs": [
+              {
+                "referenceName": "RestApiGeneric",
+                "type": "LinkedServiceReference"
+              }
+            ],
+            "outputs": [
+              {
+                "referenceName": "RawDataLakeJson",
+                "type": "DatasetReference",
+                "parameters": {
+                  "folderPath": "credit-bureau/@{utcnow('yyyy-MM-dd')}",
+                  "fileName": "@{utcnow('yyyyMMddHHmmss')}.json"
+                }
+              }
+            ]
+          }
+        ],
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]",
+        "[resourceId('Microsoft.DataFactory/factories/datasets', variables('dataFactoryName'), 'RawDataLakeJson')]",
+        "[resourceId('Microsoft.DataFactory/factories/linkedservices', variables('dataFactoryName'), 'RestApiGeneric')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/pipelines",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'BankingDataIngestionPipeline')]",
+      "properties": {
+        "activities": [],
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/pipelines",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'TelcoDataIngestionPipeline')]",
+      "properties": {
+        "activities": [],
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/pipelines",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'MasterDataIngestionPipeline')]",
+      "properties": {
+        "activities": [],
+        "annotations": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/triggers",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'DailyIngestionTrigger')]",
+      "properties": {
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+          "recurrence": {
+            "frequency": "Day",
+            "interval": 1,
+            "startTime": "2025-01-01T02:00:00Z",
+            "timeZone": "UTC"
+          }
+        },
+        "pipelines": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployLegacyStarterCatalog')]",
+      "type": "Microsoft.DataFactory/factories/triggers",
+      "apiVersion": "2018-06-01",
+      "name": "[format('{0}/{1}', variables('dataFactoryName'), 'BlobCreatedTrigger')]",
+      "properties": {
+        "type": "BlobEventsTrigger",
+        "typeProperties": {
+          "blobPathBeginsWith": "/raw/blobs/",
+          "blobPathEndsWith": ".json",
+          "ignoreEmptyBlobs": true,
+          "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('dataLakeStorageAccountName'))]",
+          "events": [
+            "Microsoft.Storage.BlobCreated"
+          ]
+        },
+        "pipelines": []
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "dataFactoryId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName'))]"
+    },
+    "dataFactoryName": {
+      "type": "string",
+      "value": "[variables('dataFactoryName')]"
+    },
+    "dataFactoryIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.DataFactory/factories', variables('dataFactoryName')), '2018-06-01', 'full').identity.principalId]"
+    },
+    "managedIdentityId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+    },
+    "linkedServicesDeployed": {
+      "type": "array",
+      "value": [
+        "[variables('keyVaultLinkedServiceName')]",
+        "[variables('dataIngestedLinkedServiceName')]"
+      ]
+    },
+    "pipelinesDeployed": {
+      "type": "array",
+      "value": "[if(parameters('deployLegacyStarterCatalog'), createArray('MasterDataIngestionPipeline', 'CreditBureauIngestionPipeline', 'BankingDataIngestionPipeline', 'TelcoDataIngestionPipeline'), createArray())]"
+    }
+  }
+}

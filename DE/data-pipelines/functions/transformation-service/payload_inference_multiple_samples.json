@@ -1,0 +1,67 @@
+{
+  "samples": [
+    {
+      "request_id": "inference-multi-001",
+      "data_source_id": "b4ed5120-65f4-46c5-b687-dc895a1d6bbf",
+      "source_system": "xds",
+      "models_to_run": ["risk"],
+      "xds_payload": {
+        "consumer_full_report_45": {
+          "response": { "statusCode": 200 },
+          "personalDetailsSummary": { "birthDate": "15/06/1988" },
+          "highestDelinquencyRating": { "highestDelinquencyRating": "1" },
+          "creditAccountSummary": {
+            "totalOutstandingdebtGHS": "8000.00",
+            "totalMonthlyInstalmentGHS": "400.00",
+            "totalActiveAccountsGHS": "1",
+            "totalNumberofAccountsGHS": "3",
+            "totalClosedAccountsGHS": "2",
+            "totalAccountInArrearGHS": "0",
+            "totalAmountInArrearGHS": "0.00"
+          },
+          "creditAgreementSummary": [
+            {
+              "accountStatusCode": "C",
+              "monthsInArrears": 0,
+              "openingBalanceAmt": 5000
+            }
+          ],
+          "accountMonthlyPaymentHistory": [],
+          "enquiryHistory": [],
+          "judgementSummary": [],
+          "defaults": [],
+          "adverseDetails": []
+        }
+      },
+      "applicant_context": {
+        "loan_amount_requested": 5000,
+        "loan_tenure_months": 24,
+        "monthly_income": 2500,
+        "identity_reference": "id-ref-multi-001"
+      }
+    },
+    {
+      "request_id": "inference-multi-002-thin-49",
+      "data_source_id": "b4ed5120-65f4-46c5-b687-dc895a1d6bbf",
+      "source_system": "xds",
+      "models_to_run": ["risk"],
+      "xds_payload": {
+        "consumer_mobile_report_49": {
+          "response": { "statusCode": 200 },
+          "detailedFacilityInfo": [{}, {}, {}, {}, {}],
+          "creditAccountSummary": {
+            "highestAmountTaken": "3000",
+            "totalOutstandingdebt": "1200",
+            "totalMonthlyInstalment": "250"
+          }
+        }
+      },
+      "applicant_context": {
+        "loan_amount_requested": 2000,
+        "loan_tenure_months": 6,
+        "monthly_income": 1800,
+        "identity_reference": "id-ref-multi-002"
+      }
+    }
+  ]
+}

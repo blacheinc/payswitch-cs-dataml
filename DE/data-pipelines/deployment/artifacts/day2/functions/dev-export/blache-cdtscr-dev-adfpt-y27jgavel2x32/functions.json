@@ -1,0 +1,39 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "ServiceBusConnectionString",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "adf-trigger-subscription",
+          "topicName": "data-awaits-ingestion",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "adf_pipeline_trigger",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "adf_pipeline_trigger",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-adfpt-y27jgavel2x32.azurewebsites.net/admin/functions/adf_pipeline_trigger",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-adfpt-y27jgavel2x32/functions/adf_pipeline_trigger",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-adfpt-y27jgavel2x32/adf_pipeline_trigger",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-adfpt-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-adfpt-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/adf_pipeline_trigger.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

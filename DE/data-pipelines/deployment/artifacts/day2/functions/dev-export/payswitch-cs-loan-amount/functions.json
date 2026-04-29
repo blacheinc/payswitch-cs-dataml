@@ -1,0 +1,76 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "loan-amount-sub",
+          "topicName": "loan-amount-predict",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "loan_amount_predict",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "loan_amount_predict",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/functions/loan_amount_predict",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-loan-amount/functions/loan_amount_predict",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-loan-amount/loan_amount_predict",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/vfs/tmp/FunctionsData/loan_amount_predict.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "loan-amount-sub",
+          "topicName": "loan-amount-train",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "loan_amount_train",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "loan_amount_train",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/functions/loan_amount_train",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-loan-amount/functions/loan_amount_train",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-loan-amount/loan_amount_train",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-loan-amount.azurewebsites.net/admin/vfs/tmp/FunctionsData/loan_amount_train.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

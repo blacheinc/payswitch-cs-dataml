@@ -1,0 +1,43 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "dev"
+    },
+    "primaryLocation": {
+      "value": "eastus"
+    },
+    "secondaryLocation": {
+      "value": "westus2"
+    },
+    "projectName": {
+      "value": "creditscore"
+    },
+    "orgName": {
+      "value": "payswitch"
+    },
+    "tags": {
+      "value": {
+        "Project": "Credit-Scoring-Agentic-AI",
+        "Environment": "dev",
+        "ManagedBy": "Bicep",
+        "Owner": "PaySwitch",
+        "CostCenter": "FinTech-Operations",
+        "DeployedBy": "Blache-Ltd"
+      }
+    },
+    "adminEmail": {
+      "value": "ops@payswitch.com.gh"
+    },
+    "enableAdvancedSecurity": {
+      "value": true
+    },
+    "enableMultiRegion": {
+      "value": false
+    },
+    "enableOpenAI": {
+      "value": true
+    }
+  }
+}

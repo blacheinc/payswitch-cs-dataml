@@ -1,0 +1,311 @@
+﻿{
+    "activities":  [
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setVariables",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.training_upload_id}"
+                                     },
+                           "variableName":  "testTrainingUploadId"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setDataSourceId",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.data_source_id}"
+                                     },
+                           "variableName":  "testDataSourceId"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setServiceBusNamespace",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.serviceBusNamespace}"
+                                     },
+                           "variableName":  "testServiceBusNamespace"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setChecksumBaseUrl",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.fileChecksumCalculatorBaseUrl}"
+                                     },
+                           "variableName":  "testChecksumBaseUrl"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setChecksumKey",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.fileChecksumCalculatorKey}"
+                                     },
+                           "variableName":  "testChecksumKey"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "name":  "setRunId",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@{pipeline().parameters.run_id}"
+                                     },
+                           "variableName":  "testRunId"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "setVariables",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             },
+                                             {
+                                                 "activity":  "setDataSourceId",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             },
+                                             {
+                                                 "activity":  "setServiceBusNamespace",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             },
+                                             {
+                                                 "activity":  "setChecksumBaseUrl",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             },
+                                             {
+                                                 "activity":  "setChecksumKey",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             },
+                                             {
+                                                 "activity":  "setRunId",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "linkedServiceName":  {
+                                                     "parameters":  null,
+                                                     "referenceName":  "metadata_postgres_ls",
+                                                     "type":  "LinkedServiceReference"
+                                                 },
+                           "logSettings":  null,
+                           "name":  "logAllParameters",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "returnMultistatementResult":  null,
+                           "scriptBlockExecutionTimeout":  "00:10:00",
+                           "scripts":  [
+                                           {
+                                               "parameters":  null,
+                                               "text":  {
+                                                            "type":  "Expression",
+                                                            "value":  "SELECT\n  \u0027@{pipeline().parameters.training_upload_id}\u0027 AS training_upload_id,\n  \u0027@{pipeline().parameters.data_source_id}\u0027 AS data_source_id,\n  \u0027@{pipeline().parameters.file_format}\u0027 AS file_format,\n  @{pipeline().parameters.file_size_bytes} AS file_size_bytes,\n  \u0027@{pipeline().parameters.raw_file_path}\u0027 AS raw_file_path,\n  \u0027@{pipeline().parameters.serviceBusNamespace}\u0027 AS service_bus_namespace,\n  \u0027@{pipeline().parameters.fileChecksumCalculatorBaseUrl}\u0027 AS checksum_base_url,\n  \u0027@{pipeline().parameters.fileChecksumCalculatorKey}\u0027 AS checksum_key,\n  \u0027@{pipeline().parameters.run_id}\u0027 AS run_id;"
+                                                        },
+                                               "type":  "Query"
+                                           }
+                                       ],
+                           "state":  null,
+                           "type":  "Script",
+                           "userProperties":  [
+
+                                              ]
+                       }
+                   ],
+    "additionalProperties":  null,
+    "annotations":  [
+
+                    ],
+    "concurrency":  null,
+    "description":  null,
+    "etag":  "3206dd04-0000-0200-0000-69b62b7d0000",
+    "folder":  null,
+    "id":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.DataFactory/factories/blache-cdtscr-dev-adf-y27jgavel2x32/pipelines/pipeline-test-adf-trigger",
+    "name":  "pipeline-test-adf-trigger",
+    "parameters":  {
+                       "data_source_id":  {
+                                              "defaultValue":  null,
+                                              "type":  "String"
+                                          },
+                       "fileChecksumCalculatorBaseUrl":  {
+                                                             "defaultValue":  null,
+                                                             "type":  "String"
+                                                         },
+                       "fileChecksumCalculatorKey":  {
+                                                         "defaultValue":  null,
+                                                         "type":  "String"
+                                                     },
+                       "file_format":  {
+                                           "defaultValue":  null,
+                                           "type":  "String"
+                                       },
+                       "file_size_bytes":  {
+                                               "defaultValue":  0,
+                                               "type":  "Int"
+                                           },
+                       "raw_file_path":  {
+                                             "defaultValue":  null,
+                                             "type":  "String"
+                                         },
+                       "run_id":  {
+                                      "defaultValue":  null,
+                                      "type":  "String"
+                                  },
+                       "serviceBusNamespace":  {
+                                                   "defaultValue":  null,
+                                                   "type":  "String"
+                                               },
+                       "training_upload_id":  {
+                                                  "defaultValue":  null,
+                                                  "type":  "String"
+                                              }
+                   },
+    "policy":  {
+                   "elapsedTimeMetric":  {
+                                             "duration":  "0.00:20:00"
+                                         }
+               },
+    "resourceGroup":  "blache-cdtscr-dev-data-rg",
+    "runDimensions":  null,
+    "type":  "Microsoft.DataFactory/factories/pipelines",
+    "variables":  {
+                      "testChecksumBaseUrl":  {
+                                                  "defaultValue":  null,
+                                                  "type":  "String"
+                                              },
+                      "testChecksumKey":  {
+                                              "defaultValue":  null,
+                                              "type":  "String"
+                                          },
+                      "testDataSourceId":  {
+                                               "defaultValue":  null,
+                                               "type":  "String"
+                                           },
+                      "testRunId":  {
+                                        "defaultValue":  null,
+                                        "type":  "String"
+                                    },
+                      "testServiceBusNamespace":  {
+                                                      "defaultValue":  null,
+                                                      "type":  "String"
+                                                  },
+                      "testTrainingUploadId":  {
+                                                   "defaultValue":  null,
+                                                   "type":  "String"
+                                               }
+                  }
+}

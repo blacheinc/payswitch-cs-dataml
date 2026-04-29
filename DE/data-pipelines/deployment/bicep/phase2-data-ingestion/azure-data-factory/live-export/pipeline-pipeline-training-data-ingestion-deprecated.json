@@ -1,0 +1,1008 @@
+﻿{
+    "activities":  [
+                       {
+                           "additionalProperties":  null,
+                           "dataIntegrationUnits":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "storeSourceChecksum",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "enableSkipIncompatibleRow":  null,
+                           "enableStaging":  false,
+                           "inputs":  [
+                                          {
+                                              "parameters":  {
+                                                                 "bank_id":  {
+                                                                                 "type":  "Expression",
+                                                                                 "value":  "@activity(\u0027readServiceBusMessage\u0027).output.bank_id"
+                                                                             },
+                                                                 "file_format":  {
+                                                                                     "type":  "Expression",
+                                                                                     "value":  "@activity(\u0027readServiceBusMessage\u0027).output.file_format"
+                                                                                 },
+                                                                 "file_name":  {
+                                                                                   "type":  "Expression",
+                                                                                   "value":  "@pipeline().parameters.file_name"
+                                                                               },
+                                                                 "raw_file_path":  {
+                                                                                       "type":  "Expression",
+                                                                                       "value":  "@pipeline().parameters.raw_file_path"
+                                                                                   },
+                                                                 "upload_id":  {
+                                                                                   "type":  "Expression",
+                                                                                   "value":  "@activity(\u0027readServiceBusMessage\u0027).output.upload_id"
+                                                                               }
+                                                             },
+                                              "referenceName":  "sourceBlobFile_ds",
+                                              "type":  "DatasetReference"
+                                          }
+                                      ],
+                           "linkedServiceName":  null,
+                           "logSettings":  {
+                                               "copyActivityLogSettings":  {
+                                                                               "enableReliableLogging":  false,
+                                                                               "logLevel":  "Warning"
+                                                                           },
+                                               "enableCopyActivityLog":  true,
+                                               "logLocationSettings":  {
+                                                                           "linkedServiceName":  {
+                                                                                                     "parameters":  null,
+                                                                                                     "referenceName":  "data_ingested_ls",
+                                                                                                     "type":  "LinkedServiceReference"
+                                                                                                 },
+                                                                           "path":  "copiedbloblogs"
+                                                                       }
+                                           },
+                           "logStorageSettings":  null,
+                           "name":  "copyToBronze",
+                           "onInactiveMarkAs":  null,
+                           "outputs":  [
+                                           {
+                                               "parameters":  {
+                                                                  "bank_id":  {
+                                                                                  "type":  "Expression",
+                                                                                  "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.bank_id"
+                                                                              },
+                                                                  "file_format":  {
+                                                                                      "type":  "Expression",
+                                                                                      "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.file_format"
+                                                                                  },
+                                                                  "raw_file_path":  {
+                                                                                        "type":  "Expression",
+                                                                                        "value":  "@pipeline().parameters.raw_file_path"
+                                                                                    },
+                                                                  "upload_id":  {
+                                                                                    "type":  "Expression",
+                                                                                    "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.upload_id"
+                                                                                }
+                                                              },
+                                               "referenceName":  "BronzeDataLakeFile_ds",
+                                               "type":  "DatasetReference"
+                                           }
+                                       ],
+                           "parallelCopies":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.00:10:00"
+                                      },
+                           "preserve":  null,
+                           "preserveRules":  null,
+                           "redirectIncompatibleRowSettings":  null,
+                           "sink":  {
+                                        "additionalProperties":  null,
+                                        "disableMetricsCollection":  null,
+                                        "maxConcurrentConnections":  null,
+                                        "sinkRetryCount":  null,
+                                        "sinkRetryWait":  null,
+                                        "storeSettings":  {
+                                                              "additionalProperties":  null,
+                                                              "blockSizeInMb":  null,
+                                                              "copyBehavior":  "PreserveHierarchy",
+                                                              "disableMetricsCollection":  null,
+                                                              "maxConcurrentConnections":  null,
+                                                              "metadata":  null,
+                                                              "type":  "AzureBlobFSWriteSettings"
+                                                          },
+                                        "type":  "BinarySink",
+                                        "writeBatchSize":  null,
+                                        "writeBatchTimeout":  null
+                                    },
+                           "skipErrorFile":  null,
+                           "source":  {
+                                          "additionalProperties":  null,
+                                          "disableMetricsCollection":  null,
+                                          "formatSettings":  {
+                                                                 "additionalProperties":  null,
+                                                                 "compressionProperties":  null,
+                                                                 "type":  "BinaryReadSettings"
+                                                             },
+                                          "maxConcurrentConnections":  null,
+                                          "sourceRetryCount":  null,
+                                          "sourceRetryWait":  null,
+                                          "storeSettings":  {
+                                                                "additionalProperties":  null,
+                                                                "deleteFilesAfterCompletion":  null,
+                                                                "disableMetricsCollection":  null,
+                                                                "enablePartitionDiscovery":  null,
+                                                                "fileListPath":  null,
+                                                                "maxConcurrentConnections":  null,
+                                                                "modifiedDatetimeEnd":  null,
+                                                                "modifiedDatetimeStart":  null,
+                                                                "partitionRootPath":  null,
+                                                                "prefix":  null,
+                                                                "recursive":  true,
+                                                                "type":  "AzureBlobStorageReadSettings",
+                                                                "wildcardFileName":  null,
+                                                                "wildcardFolderPath":  null
+                                                            },
+                                          "type":  "BinarySource"
+                                      },
+                           "stagingSettings":  null,
+                           "state":  null,
+                           "translator":  null,
+                           "type":  "Copy",
+                           "userProperties":  [
+
+                                              ],
+                           "validateDataConsistency":  null
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dataset":  {
+                                           "parameters":  {
+                                                              "bank_id":  {
+                                                                              "type":  "Expression",
+                                                                              "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.bank_id"
+                                                                          },
+                                                              "file_format":  {
+                                                                                  "type":  "Expression",
+                                                                                  "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.file_format"
+                                                                              },
+                                                              "raw_file_path":  {
+                                                                                    "type":  "Expression",
+                                                                                    "value":  "@pipeline().parameters.raw_file_path"
+                                                                                },
+                                                              "upload_id":  {
+                                                                                "type":  "Expression",
+                                                                                "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.upload_id"
+                                                                            }
+                                                          },
+                                           "referenceName":  "BronzeDataLakeFile_ds",
+                                           "type":  "DatasetReference"
+                                       },
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "storeBronzeChecksum",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "fieldList":  [
+                                             "size"
+                                         ],
+                           "formatSettings":  {
+                                                  "additionalProperties":  null,
+                                                  "compressionProperties":  null,
+                                                  "type":  "BinaryReadSettings"
+                                              },
+                           "linkedServiceName":  null,
+                           "name":  "GetBronzeFileSize",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  3,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "storeSettings":  {
+                                                 "additionalProperties":  null,
+                                                 "deleteFilesAfterCompletion":  null,
+                                                 "disableMetricsCollection":  null,
+                                                 "enablePartitionDiscovery":  false,
+                                                 "fileListPath":  null,
+                                                 "maxConcurrentConnections":  null,
+                                                 "modifiedDatetimeEnd":  null,
+                                                 "modifiedDatetimeStart":  null,
+                                                 "partitionRootPath":  null,
+                                                 "recursive":  true,
+                                                 "type":  "AzureBlobFSReadSettings",
+                                                 "wildcardFileName":  null,
+                                                 "wildcardFolderPath":  null
+                                             },
+                           "type":  "GetMetadata",
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "GetBronzeFileSize",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "expression":  {
+                                              "type":  "Expression",
+                                              "value":  "@and(equals(activity(\u0027GetBronzeFileSize\u0027).output.size, activity(\u0027lookupMetadata\u0027).output.firstRow.file_size_bytes), equals(variables(\u0027sourceChecksum\u0027), variables(\u0027bronzeCheckSum\u0027)))"
+                                          },
+                           "ifFalseActivities":  [
+                                                     {
+                                                         "additionalProperties":  null,
+                                                         "dependsOn":  [
+
+                                                                       ],
+                                                         "description":  null,
+                                                         "errorCode":  "500",
+                                                         "message":  {
+                                                                         "type":  "Expression",
+                                                                         "value":  "@concat(\u0027Could not verify file size for file: \u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_name, \u0027. File details:- BronzeFile: \u0027, string(activity(\u0027GetBronzeFileSize\u0027).output.size), \u0027 bytes, Lookup File: \u0027, string(activity(\u0027lookupMetadata\u0027).output.firstRow.file_size_bytes), \u0027 bytes\u0027)"
+                                                                     },
+                                                         "name":  "Fail1",
+                                                         "onInactiveMarkAs":  null,
+                                                         "state":  null,
+                                                         "type":  "Fail",
+                                                         "userProperties":  [
+
+                                                                            ]
+                                                     },
+                                                     {
+                                                         "additionalProperties":  null,
+                                                         "authentication":  null,
+                                                         "body":  {
+                                                                      "type":  "Expression",
+                                                                      "value":  "{\n       \"upload_id\": \"@{activity(\u0027readServiceBusMessage\u0027).output.upload_id}\",\n       \"bank_id\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.bank_id}\",\n       \"status\": \"verification_failed\",\n       \"expected_size_bytes\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.file_size_bytes}\",\n    \"actual_size_bytes\": \"@{activity(\u0027GetBronzeFileSize\u0027).output.size}\",\n       \"source_blob_path\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.blob_path}\",\n       \"bronze_blob_path\": \"@{concat(\u0027bronze/training/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.bank_id, \u0027/\u0027, formatDateTime(utcNow(), \u0027yyyy-MM-dd\u0027), \u0027/\u0027, activity(\u0027readServiceBusMessage\u0027).output.upload_id, \u0027.\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_format)}\",\n       \"file_format\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.file_format}\",\n       \"row_count\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.row_count}\",\n       \"column_count\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.column_count}\",\n       \"timestamp\": \"@{utcNow()}\",\n       \"status\": \"File size verification failed - file may be corrupted during copy\"\n     }"
+                                                                  },
+                                                         "connectVia":  null,
+                                                         "datasets":  null,
+                                                         "dependsOn":  [
+                                                                           {
+                                                                               "activity":  "updateMetadataOnFailure",
+                                                                               "additionalProperties":  null,
+                                                                               "dependencyConditions":  [
+                                                                                                            "Succeeded"
+                                                                                                        ]
+                                                                           }
+                                                                       ],
+                                                         "description":  null,
+                                                         "disableCertValidation":  null,
+                                                         "headers":  {
+
+                                                                     },
+                                                         "httpRequestTimeout":  null,
+                                                         "linkedServiceName":  null,
+                                                         "linkedServices":  null,
+                                                         "method":  "POST",
+                                                         "name":  "publishVerficationFailure",
+                                                         "onInactiveMarkAs":  null,
+                                                         "policy":  {
+                                                                        "additionalProperties":  null,
+                                                                        "retry":  0,
+                                                                        "retryIntervalInSeconds":  30,
+                                                                        "secureInput":  false,
+                                                                        "secureOutput":  false,
+                                                                        "timeout":  "0.12:00:00"
+                                                                    },
+                                                         "state":  null,
+                                                         "turnOffAsync":  null,
+                                                         "type":  "WebActivity",
+                                                         "url":  {
+                                                                     "type":  "Expression",
+                                                                     "value":  "@concat(\u0027https://\u0027, activity(\u0027getServiceBusNamespace\u0027).output.value, \u0027.servicebus.windows.net/\u0027, pipeline().parameters.dataIngestedTopic, \u0027/messages?\u0027, pipeline().globalParameters.serviceBusAPIVersion)"
+                                                                 },
+                                                         "userProperties":  [
+
+                                                                            ]
+                                                     },
+                                                     {
+                                                         "additionalProperties":  null,
+                                                         "dependsOn":  [
+                                                                           {
+                                                                               "activity":  "Fail1",
+                                                                               "additionalProperties":  null,
+                                                                               "dependencyConditions":  [
+                                                                                                            "Succeeded"
+                                                                                                        ]
+                                                                           }
+                                                                       ],
+                                                         "description":  null,
+                                                         "linkedServiceName":  {
+                                                                                   "parameters":  null,
+                                                                                   "referenceName":  "metadata_postgres_ls",
+                                                                                   "type":  "LinkedServiceReference"
+                                                                               },
+                                                         "logSettings":  null,
+                                                         "name":  "updateMetadataOnFailure",
+                                                         "onInactiveMarkAs":  null,
+                                                         "policy":  {
+                                                                        "additionalProperties":  null,
+                                                                        "retry":  0,
+                                                                        "retryIntervalInSeconds":  30,
+                                                                        "secureInput":  false,
+                                                                        "secureOutput":  false,
+                                                                        "timeout":  "0.12:00:00"
+                                                                    },
+                                                         "returnMultistatementResult":  null,
+                                                         "scriptBlockExecutionTimeout":  "02:00:00",
+                                                         "scripts":  [
+                                                                         {
+                                                                             "parameters":  null,
+                                                                             "text":  {
+                                                                                          "type":  "Expression",
+                                                                                          "value":  "UPDATE upload_metadata\nSET \n   bronze_status = \u0027verification_failed\u0027,\n   status = \u0027bronze_verification_failed\u0027,\n   error_message = @{concat(\u0027File size verification failed. Expected: \u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_size_bytes, \u0027. Actual: \u0027, string(activity(\u0027GetBronzeFileSize\u0027).output.size), \u0027 bytes.\u0027)},\n      updated_at = CURRENT_TIMESTAMP\n  WHERE upload_id = \u0027@{activity(\u0027readServiceBusMessage\u0027).output.upload_id}\u0027\n  AND is_deleted = \u0027false\u0027"
+                                                                                      },
+                                                                             "type":  "NonQuery"
+                                                                         }
+                                                                     ],
+                                                         "state":  null,
+                                                         "type":  "Script",
+                                                         "userProperties":  [
+
+                                                                            ]
+                                                     }
+                                                 ],
+                           "ifTrueActivities":  [
+                                                    {
+                                                        "additionalProperties":  null,
+                                                        "dependsOn":  [
+
+                                                                      ],
+                                                        "description":  null,
+                                                        "name":  "storeFileSize",
+                                                        "onInactiveMarkAs":  null,
+                                                        "policy":  {
+                                                                       "secureInput":  false,
+                                                                       "secureOutput":  false
+                                                                   },
+                                                        "setSystemVariable":  null,
+                                                        "state":  null,
+                                                        "type":  "SetVariable",
+                                                        "userProperties":  [
+
+                                                                           ],
+                                                        "value":  {
+                                                                      "type":  "Expression",
+                                                                      "value":  "@activity(\u0027GetBronzeFileSize\u0027).output.size"
+                                                                  },
+                                                        "variableName":  "fileSize"
+                                                    }
+                                                ],
+                           "name":  "verifyFileSize",
+                           "onInactiveMarkAs":  null,
+                           "state":  null,
+                           "type":  "IfCondition",
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "verifyFileSize",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  "Update upload_metadata table with bronze layer information",
+                           "linkedServiceName":  {
+                                                     "parameters":  null,
+                                                     "referenceName":  "metadata_postgres_ls",
+                                                     "type":  "LinkedServiceReference"
+                                                 },
+                           "logSettings":  null,
+                           "name":  "updateBronzeMetadata",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "returnMultistatementResult":  null,
+                           "scriptBlockExecutionTimeout":  "00:10:00",
+                           "scripts":  [
+                                           {
+                                               "parameters":  null,
+                                               "text":  {
+                                                            "type":  "Expression",
+                                                            "value":  "UPDATE training_uploads\n     SET \n         bronze_blob_path = \u0027@{concat(\u0027bronze/training/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.data_source_id, \u0027/\u0027, formatDateTime(utcNow(), \u0027yyyy-MM-dd\u0027), \u0027/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.id, \u0027.\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_format)}\u0027,\n         bronze_row_count = @{activity(\u0027lookupMetadata\u0027).output.firstRow.row_count},\n         bronze_file_size_bytes = @{activity(\u0027GetBronzeFileSize\u0027).output.size},\n         bronze_checksum_sha256 = \u0027\u0027,\n         bronze_status = \u0027verified\u0027,\n         bronze_verified_at = CURRENT_TIMESTAMP,\n         status = \u0027bronze_ingested\u0027,\n         updated_at = CURRENT_TIMESTAMP\n     WHERE upload_id = \u0027@{activity(\u0027lookupMetadata\u0027).output.firstRow.id}\u0027\n     AND is_deleted = \u0027false\u0027"
+                                                        },
+                                               "type":  "NonQuery"
+                                           }
+                                       ],
+                           "state":  null,
+                           "type":  "Script",
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  {
+                                                  "credential":  null,
+                                                  "password":  null,
+                                                  "pfx":  null,
+                                                  "resource":  "https://servicebus.azure.net/",
+                                                  "type":  "MSI",
+                                                  "userTenant":  null,
+                                                  "username":  null
+                                              },
+                           "body":  {
+                                        "type":  "Expression",
+                                        "value":  "{\n       \"training_upload_id\": \"@{activity(\u0027readServiceBusMessage\u0027).output.training_upload_id}\",\n       \"bank_id\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.data_source_id}\",\n       \"source_blob_path\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.blob_path}\",\n       \"bronze_blob_path\": \"@{concat(\u0027bronze/training/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.data_source_id, \u0027/\u0027, formatDateTime(utcNow(), \u0027yyyy-MM-dd\u0027), \u0027/\u0027, activity(\u0027readServiceBusMessage\u0027).output.training_upload_id, \u0027.\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_format)}\",\n       \"file_format\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.file_format}\",\n       \"row_count\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.row_count}\",\n       \"column_count\": \"@{activity(\u0027lookupMetadata\u0027).output.firstRow.column_count}\",\n       \"ingestion_timestamp\": \"@{utcNow()}\",\n       \"status\": \"bronze_ingested\"\n     }"
+                                    },
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "updateBronzeMetadata",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+                                           "BrokerProperties":  {
+                                                                    "type":  "Expression",
+                                                                    "value":  "{\"Label\": \"data-ingested\", \"SessionId\": \"sessn-@{activity(\u0027readServiceBusMessage\u0027).output.upload_id}\", \"subscription\": \"start-transformation\"}"
+                                                                },
+                                           "Content-Type":  "application/json",
+                                           "bank_id":  {
+                                                           "type":  "Expression",
+                                                           "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.data_source_id"
+                                                       },
+                                           "bronze_blob_path":  {
+                                                                    "type":  "Expression",
+                                                                    "value":  "\"@{concat(\u0027bronze/training/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.data_source_id, \u0027/\u0027, formatDateTime(utcNow(), \u0027yyyy-MM-dd\u0027), \u0027/\u0027, activity(\u0027readServiceBusMessage\u0027).output.training_upload_id, \u0027.\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_format)}\""
+                                                                },
+                                           "run_id":  {
+                                                          "type":  "Expression",
+                                                          "value":  "@pipeline().RunId"
+                                                      },
+                                           "subscription":  "start-transformation",
+                                           "training_upload_id":  {
+                                                                      "type":  "Expression",
+                                                                      "value":  "@activity(\u0027lookupMetadata\u0027).output.firstRow.id"
+                                                                  }
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "POST",
+                           "name":  "publishSuccessMessage",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  3,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(\u0027https://\u0027, activity(\u0027getServiceBusNamespace\u0027).output.value, \u0027.servicebus.windows.net/\u0027, pipeline().parameters.dataIngestedTopic, \u0027/messages?\u0027, pipeline().globalParameters.serviceBusAPIVersion)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  {
+                                                  "credential":  null,
+                                                  "password":  null,
+                                                  "pfx":  null,
+                                                  "resource":  "https://vault.azure.net/",
+                                                  "type":  "MSI",
+                                                  "userTenant":  null,
+                                                  "username":  null
+                                              },
+                           "body":  null,
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "readFileChecksumKey",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "getServiceBusNamespace",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(\u0027https://\u0027, pipeline().globalParameters.keyVaultName, \u0027.vault.azure.net/secrets/ServiceBusNamespace/?\u0027, pipeline().globalParameters.keyVaultVersionNum)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dataset":  {
+                                           "parameters":  {
+
+                                                          },
+                                           "referenceName":  "postgresqlUploadMetadata_ds",
+                                           "type":  "DatasetReference"
+                                       },
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "readServiceBusMessage",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "firstRowOnly":  null,
+                           "linkedServiceName":  null,
+                           "name":  "lookupMetadata",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  3,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "source":  {
+                                          "additionalColumns":  null,
+                                          "disableMetricsCollection":  null,
+                                          "maxConcurrentConnections":  null,
+                                          "partitionOption":  "None",
+                                          "query":  {
+                                                        "type":  "Expression",
+                                                        "value":  "@concat(\u0027SELECT data_source_id, status, file_name, file_format, file_size_bytes, raw_file_path, file_metadata, record_count FROM training_uploads WHERE id = \u0027\u0027\u0027, activity(\u0027readServiceBusMessage\u0027).output.training_upload_id, \u0027\u0027\u0027 AND status = \u0027\u0027ingesting\u0027\u0027\u0027)"
+                                                    },
+                                          "queryTimeout":  "00:10:00",
+                                          "sourceRetryCount":  null,
+                                          "sourceRetryWait":  null,
+                                          "type":  "AzurePostgreSqlSource"
+                                      },
+                           "state":  null,
+                           "type":  "Lookup",
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  {
+                                                  "credential":  null,
+                                                  "password":  null,
+                                                  "pfx":  null,
+                                                  "resource":  "https://servicebus.azure.net/",
+                                                  "type":  "MSI",
+                                                  "userTenant":  null,
+                                                  "username":  null
+                                              },
+                           "body":  "",
+                           "connectVia":  {
+                                              "parameters":  null,
+                                              "referenceName":  "integrationRuntime1",
+                                              "type":  "IntegrationRuntimeReference"
+                                          },
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "getServiceBusNamespace",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+                                           "BrokerProperties":  "{\"Timeout\": 60}",
+                                           "Content-Type":  "application/json"
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "readServiceBusMessage",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(\u0027https://\u0027, activity(\u0027getServiceBusNamespace\u0027).output.value, \u0027.servicebus.windows.net/\u0027, pipeline().parameters.dataAwaitsIngestionTopic, \u0027/subscriptions/\u0027, pipeline().parameters.dataAwaitsIngestionSubscription, \u0027/messages/head?\u0027, pipeline().globalParameters.serviceBusAPIVersion)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  {
+                                                  "credential":  null,
+                                                  "password":  null,
+                                                  "pfx":  null,
+                                                  "resource":  "https://vault.azure.net/",
+                                                  "type":  "MSI",
+                                                  "userTenant":  null,
+                                                  "username":  null
+                                              },
+                           "body":  null,
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "readFileChecksumBaseUrl",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "readFileChecksumKey",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(\u0027https://\u0027, pipeline().globalParameters.keyVaultName, \u0027.vault.azure.net/secrets/FileChecksumCalculatorFunctionKey/?\u0027, pipeline().globalParameters.keyVaultVersionNum)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  {
+                                                  "credential":  null,
+                                                  "password":  null,
+                                                  "pfx":  null,
+                                                  "resource":  "https://vault.azure.net/",
+                                                  "type":  "MSI",
+                                                  "userTenant":  null,
+                                                  "username":  null
+                                              },
+                           "body":  null,
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "readFileChecksumBaseUrl",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(\u0027https://\u0027, pipeline().globalParameters.keyVaultName, \u0027.vault.azure.net/secrets/FileChecksumCalculatorFunctionBaseUrl/?\u0027, pipeline().globalParameters.keyVaultVersionNum)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  null,
+                           "body":  null,
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "lookupMetadata",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "getSourceFileChecksum",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  3,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(activity(\u0027readFileChecksumBaseUrl\u0027).output.value, \u0027/api/calculate_checksum?code=\u0027, activity(\u0027readFileChecksumKey\u0027).output.value, \u0027\u0026blob_url=https://\u0027, pipeline().globalParameters.blobStorageAccount, \u0027.blob.core.windows.net/data/\u0027, activity(\u0027readServiceBusMessage\u0027).output.raw_file_path)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "getSourceFileChecksum",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "name":  "storeSourceChecksum",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@activity(\u0027getSourceFileChecksum\u0027).output.checksum"
+                                     },
+                           "variableName":  "sourceChecksum"
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "authentication":  null,
+                           "body":  null,
+                           "connectVia":  null,
+                           "datasets":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "copyToBronze",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "disableCertValidation":  null,
+                           "headers":  {
+
+                                       },
+                           "httpRequestTimeout":  null,
+                           "linkedServiceName":  null,
+                           "linkedServices":  null,
+                           "method":  "GET",
+                           "name":  "getBronzeFileChecksum",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "additionalProperties":  null,
+                                          "retry":  0,
+                                          "retryIntervalInSeconds":  30,
+                                          "secureInput":  false,
+                                          "secureOutput":  false,
+                                          "timeout":  "0.12:00:00"
+                                      },
+                           "state":  null,
+                           "turnOffAsync":  null,
+                           "type":  "WebActivity",
+                           "url":  {
+                                       "type":  "Expression",
+                                       "value":  "@concat(activity(\u0027readFileChecksumBaseUrl\u0027).output.value, \u0027/api/calculate_checksum?code=\u0027, activity(\u0027readFileChecksumKey\u0027).output.value, \u0027\u0026blob_url=https://\u0027, pipeline().globalParameters.dataLakeStorageAccount, \u0027.dfs.core.windows.net/bronze/training/\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.bank_id, \u0027/\u0027, formatDateTime(utcNow(), \u0027yyyy-MM-dd\u0027), \u0027/\u0027,\nactivity(\u0027lookupMetadata\u0027).output.firstRow.upload_id, \u0027.\u0027, activity(\u0027lookupMetadata\u0027).output.firstRow.file_format)"
+                                   },
+                           "userProperties":  [
+
+                                              ]
+                       },
+                       {
+                           "additionalProperties":  null,
+                           "dependsOn":  [
+                                             {
+                                                 "activity":  "getBronzeFileChecksum",
+                                                 "additionalProperties":  null,
+                                                 "dependencyConditions":  [
+                                                                              "Succeeded"
+                                                                          ]
+                                             }
+                                         ],
+                           "description":  null,
+                           "name":  "storeBronzeChecksum",
+                           "onInactiveMarkAs":  null,
+                           "policy":  {
+                                          "secureInput":  false,
+                                          "secureOutput":  false
+                                      },
+                           "setSystemVariable":  null,
+                           "state":  null,
+                           "type":  "SetVariable",
+                           "userProperties":  [
+
+                                              ],
+                           "value":  {
+                                         "type":  "Expression",
+                                         "value":  "@activity(\u0027getBronzeFileChecksum\u0027).output.checksum"
+                                     },
+                           "variableName":  "bronzeCheckSum"
+                       }
+                   ],
+    "additionalProperties":  null,
+    "annotations":  [
+
+                    ],
+    "concurrency":  null,
+    "description":  null,
+    "etag":  "5d00392e-0000-0200-0000-69bb7c2c0000",
+    "folder":  null,
+    "id":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.DataFactory/factories/blache-cdtscr-dev-adf-y27jgavel2x32/pipelines/pipeline-training-data-ingestion-deprecated",
+    "name":  "pipeline-training-data-ingestion-deprecated",
+    "parameters":  {
+                       "dataAwaitsIngestionSubscription":  {
+                                                               "defaultValue":  "temp-peek-subscription",
+                                                               "type":  "String"
+                                                           },
+                       "dataAwaitsIngestionTopic":  {
+                                                        "defaultValue":  "data-awaits-ingestion",
+                                                        "type":  "String"
+                                                    },
+                       "dataIngestedTopic":  {
+                                                 "defaultValue":  "data-ingested",
+                                                 "type":  "string"
+                                             },
+                       "file_name":  {
+                                         "defaultValue":  null,
+                                         "type":  "string"
+                                     },
+                       "raw_file_path":  {
+                                             "defaultValue":  null,
+                                             "type":  "string"
+                                         }
+                   },
+    "policy":  {
+                   "elapsedTimeMetric":  {
+                                             "duration":  "0.00:20:00"
+                                         }
+               },
+    "resourceGroup":  "blache-cdtscr-dev-data-rg",
+    "runDimensions":  null,
+    "type":  "Microsoft.DataFactory/factories/pipelines",
+    "variables":  {
+                      "bronzeCheckSum":  {
+                                             "defaultValue":  null,
+                                             "type":  "String"
+                                         },
+                      "fileSize":  {
+                                       "defaultValue":  null,
+                                       "type":  "Integer"
+                                   },
+                      "fileSizeInt":  {
+                                          "defaultValue":  null,
+                                          "type":  "Integer"
+                                      },
+                      "kvSecrets":  {
+                                        "defaultValue":  null,
+                                        "type":  "String"
+                                    },
+                      "lookupQuery":  {
+                                          "defaultValue":  null,
+                                          "type":  "String"
+                                      },
+                      "serviceBusNamespace":  {
+                                                  "defaultValue":  null,
+                                                  "type":  "String"
+                                              },
+                      "sourceChecksum":  {
+                                             "defaultValue":  null,
+                                             "type":  "String"
+                                         },
+                      "test":  {
+                                   "defaultValue":  null,
+                                   "type":  "String"
+                               }
+                  }
+}

@@ -1,0 +1,23 @@
+{
+  "flow_type": "training",
+  "request_id": "req-train-001",
+  "data_source_id": "bank-xyz",
+  "source_system": "xds",
+  "xds_payload": {
+    "consumer_full_report_45": {
+      "response": { "statusCode": 200 },
+      "personalDetailsSummary": {}
+    }
+  },
+  "applicant_context": {
+    "loan_amount_requested": 1000.0,
+    "loan_tenure_months": 6,
+    "monthly_income": 500.0,
+    "identity_reference": "ID123"
+  },
+  "record_count": 1,
+  "dataset_version": "v1",
+  "product_distribution": { "45": 1 },
+  "models_to_train": ["all"],
+  "cleaned_dataset_path": ""
+}

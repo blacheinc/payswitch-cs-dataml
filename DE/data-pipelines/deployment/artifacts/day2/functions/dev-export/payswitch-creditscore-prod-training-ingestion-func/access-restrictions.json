@@ -1,0 +1,31 @@
+﻿{
+  "ipSecurityRestrictions": [
+    {
+      "action": "Allow",
+      "description": "Allow Azure service traffic",
+      "ipAddress": "AzureCloud",
+      "name": "AllowAzureServices",
+      "priority": 100,
+      "tag": "ServiceTag"
+    },
+    {
+      "action": "Deny",
+      "description": "Deny all access",
+      "ipAddress": "Any",
+      "name": "Deny all",
+      "priority": 2147483647
+    }
+  ],
+  "ipSecurityRestrictionsDefaultAction": null,
+  "scmIpSecurityRestrictions": [
+    {
+      "action": "Allow",
+      "description": "Allow all access",
+      "ipAddress": "Any",
+      "name": "Allow all",
+      "priority": 2147483647
+    }
+  ],
+  "scmIpSecurityRestrictionsDefaultAction": null,
+  "scmIpSecurityRestrictionsUseMain": true
+}

@@ -1,0 +1,6 @@
+﻿{
+  "principalId": "2f72ed20-b2cb-472a-b651-862e6263053f",
+  "tenantId": "23e595b0-4c1c-43f4-b989-0e939917c1aa",
+  "type": "SystemAssigned",
+  "userAssignedIdentities": null
+}

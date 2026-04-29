@@ -1,0 +1,84 @@
+{
+  "policy_version": "de-imputation-v1-bootstrap",
+  "source": "Payswitch Credit Score Multi-Model AI Development.md",
+  "applies_to": {
+    "product_source_49": [
+      "months_on_time_24m",
+      "worst_arrears_24m",
+      "current_streak_on_time",
+      "product_diversity_score",
+      "has_judgement",
+      "num_bounced_cheques",
+      "has_adverse_default",
+      "address_stability"
+    ],
+    "product_source_45": [
+      "mobile_loan_history_count",
+      "mobile_max_loan_ghs"
+    ]
+  },
+  "feature_strategies": {
+    "months_on_time_24m": {
+      "strategy": "MEDIAN",
+      "value": 0.55
+    },
+    "worst_arrears_24m": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "current_streak_on_time": {
+      "strategy": "MEDIAN",
+      "value": 0.45
+    },
+    "product_diversity_score": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "has_judgement": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "num_bounced_cheques": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "has_adverse_default": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "address_stability": {
+      "strategy": "MEDIAN",
+      "value": 0.75
+    },
+    "mobile_loan_history_count": {
+      "strategy": "ZERO",
+      "value": 0.0
+    },
+    "mobile_max_loan_ghs": {
+      "strategy": "ZERO",
+      "value": 0.0
+    }
+  },
+  "required_non_imputable_features": [
+    "highest_delinquency_rating",
+    "has_active_arrears",
+    "total_arrear_amount_ghs",
+    "total_outstanding_debt_ghs",
+    "utilisation_ratio",
+    "num_active_accounts",
+    "total_monthly_instalment_ghs",
+    "credit_age_months",
+    "num_accounts_total",
+    "num_closed_accounts_good",
+    "has_written_off",
+    "has_charged_off",
+    "has_legal_handover",
+    "num_enquiries_3m",
+    "num_enquiries_12m",
+    "enquiry_reason_flags",
+    "applicant_age",
+    "identity_verified",
+    "num_dependants",
+    "has_employer_detail"
+  ]
+}

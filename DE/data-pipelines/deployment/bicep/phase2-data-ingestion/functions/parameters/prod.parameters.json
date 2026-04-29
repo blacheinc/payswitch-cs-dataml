@@ -1,0 +1,37 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "location":  {
+                                        "value":  "eastus2"
+                                    },
+                       "namingPrefix":  {
+                                            "value":  "payswitch-creditscore-prod"
+                                        },
+                       "functionsSubnetId":  {
+                                                 "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/payswitch-creditscore-prod-network-rg/providers/Microsoft.Network/virtualNetworks/payswitch-creditscore-prod-vnet/subnets/functions-subnet"
+                                             },
+                       "privateEndpointsSubnetId":  {
+                                                        "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/payswitch-creditscore-prod-network-rg/providers/Microsoft.Network/virtualNetworks/payswitch-creditscore-prod-vnet/subnets/private-endpoints-subnet"
+                                                    },
+                       "functionsStorageAccountName":  {
+                                                           "value":  "payswitcstqautpja4gjia6"
+                                                       },
+                       "privateNetworkMode":  {
+                                                  "value":  true
+                                              },
+                       "premiumPlanSku":  {
+                                              "value":  "P1v3"
+                                          },
+                       "planTier":  {
+                                        "value":  "PremiumV3"
+                                    },
+                       "tags":  {
+                                    "value":  {
+                                                  "Environment":  "prod",
+                                                  "ManagedBy":  "Bicep",
+                                                  "Project":  "Credit-Scoring"
+                                              }
+                                }
+                   }
+}

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "15991828081023077030"
+    }
+  },
+  "parameters": {
+    "functionApps": {
+      "type": "array",
+      "metadata": {
+        "description": "Function apps that should receive IAM grants"
+      }
+    },
+    "excludedFunctionAppNames": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Function app names to exclude from IAM role assignment"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name in this resource group"
+      }
+    }
+  },
+  "variables": {
+    "keyVaultSecretsUserRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '4633458b-17de-408a-b874-0445c86b69e6')]",
+    "contributorRoleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+  },
+  "resources": [
+    {
+      "copy": {
+        "name": "keyVaultSecretsUserAssignments",
+        "count": "[length(parameters('functionApps'))]"
+      },
+      "condition": "[not(contains(parameters('excludedFunctionAppNames'), parameters('functionApps')[copyIndex()].name))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('functionApps')[copyIndex()].name, variables('keyVaultSecretsUserRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('keyVaultSecretsUserRoleDefinitionId')]",
+        "principalId": "[reference(resourceId(parameters('functionApps')[copyIndex()].resourceGroupName, 'Microsoft.Web/sites', parameters('functionApps')[copyIndex()].name), '2023-12-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    },
+    {
+      "copy": {
+        "name": "keyVaultContributorAssignments",
+        "count": "[length(parameters('functionApps'))]"
+      },
+      "condition": "[not(contains(parameters('excludedFunctionAppNames'), parameters('functionApps')[copyIndex()].name))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+      "name": "[guid(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), parameters('functionApps')[copyIndex()].name, variables('contributorRoleDefinitionId'))]",
+      "properties": {
+        "roleDefinitionId": "[variables('contributorRoleDefinitionId')]",
+        "principalId": "[reference(resourceId(parameters('functionApps')[copyIndex()].resourceGroupName, 'Microsoft.Web/sites', parameters('functionApps')[copyIndex()].name), '2023-12-01', 'Full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
+    }
+  ]
+}

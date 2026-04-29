@@ -1,0 +1,76 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "income-verification-sub",
+          "topicName": "income-verify-predict",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "income_verification_predict",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "income_verification_predict",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-income-verification.azurewebsites.net/admin/functions/income_verification_predict",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-income-verification/functions/income_verification_predict",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-income-verification/income_verification_predict",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-income-verification.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-income-verification.azurewebsites.net/admin/vfs/tmp/FunctionsData/income_verification_predict.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "income-verification-sub",
+          "topicName": "income-verification-train",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "income_verification_train",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "income_verification_train",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-income-verification.azurewebsites.net/admin/functions/income_verification_train",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-income-verification/functions/income_verification_train",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-income-verification/income_verification_train",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-income-verification.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-income-verification.azurewebsites.net/admin/vfs/tmp/FunctionsData/income_verification_train.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

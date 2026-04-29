@@ -1,0 +1,28 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "namingPrefix": {
+            "value": "payswitch-creditscore-prod"
+        },
+        "functionsStorageAccountName": {
+            "value": "payswitcstqautpja4gjia6"
+        },
+        "allowedCallerCidrs": {
+            "value": []
+        },
+        "disableScmPublicAccess": {
+            "value": true
+        },
+        "tags": {
+            "value": {
+                "Environment": "prod",
+                "ManagedBy": "Bicep",
+                "Project": "Credit-Scoring"
+            }
+        }
+    }
+}

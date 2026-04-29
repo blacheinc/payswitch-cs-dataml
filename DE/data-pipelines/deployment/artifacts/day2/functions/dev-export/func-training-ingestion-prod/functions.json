@@ -1,0 +1,39 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "ServiceBusConnectionString",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "temp-peek-subscription",
+          "topicName": "data-awaits-ingestion",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "training_data_ingestion",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "training_data_ingestion",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://func-training-ingestion-prod.azurewebsites.net/admin/functions/training_data_ingestion",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/func-training-ingestion-prod/functions/training_data_ingestion",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "func-training-ingestion-prod/training_data_ingestion",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://func-training-ingestion-prod.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://func-training-ingestion-prod.azurewebsites.net/admin/vfs/tmp/FunctionsData/training_data_ingestion.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

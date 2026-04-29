@@ -1,0 +1,26 @@
+# Azure Functions dependencies
+azure-functions==1.18.0
+
+# Azure SDK
+azure-servicebus==7.11.4
+azure-identity==1.15.0
+azure-keyvault-secrets==4.7.0
+azure-storage-blob==12.19.0
+azure-monitor-opentelemetry==1.2.0
+
+# Data processing
+pandas==2.1.4
+numpy==1.26.2
+pyarrow==14.0.1
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# Utilities
+redis>=4.6.0
+requests>=2.31.0
+python-dateutil==2.8.2
+pytz==2023.3
+pydantic>=2.5.0
+openai>=1.12.0

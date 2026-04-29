@@ -1,0 +1,1345 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "5094358368764847803"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment (dev, staging, prod)"
+      }
+    },
+    "privateNetworkMode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable private networking posture (forces Premium and disables public access)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    }
+  },
+  "variables": {
+    "serviceBusNamespaceName": "[format('{0}-sb-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+    "serviceBusSku": "[if(or(equals(parameters('environment'), 'prod'), parameters('privateNetworkMode')), 'Premium', 'Standard')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ServiceBus/namespaces",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[variables('serviceBusNamespaceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "[variables('serviceBusSku')]",
+        "tier": "[variables('serviceBusSku')]",
+        "capacity": "[if(equals(variables('serviceBusSku'), 'Premium'), 1, 0)]"
+      },
+      "properties": {
+        "zoneRedundant": "[or(equals(parameters('environment'), 'prod'), parameters('privateNetworkMode'))]",
+        "minimumTlsVersion": "1.2",
+        "publicNetworkAccess": "[if(parameters('privateNetworkMode'), 'Disabled', 'Enabled')]",
+        "disableLocalAuth": "[parameters('privateNetworkMode')]"
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'data-ingested')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'data-ingested', 'data-quality-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'data-ingested')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'data-quality-checked')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'data-quality-checked', 'feature-engineering-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'data-quality-checked')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'features-engineered')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'features-engineered', 'model-training-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 3,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'features-engineered')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'features-engineered', 'decision-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "PT1H",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 5,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'features-engineered')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'decision-made')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P30D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'decision-made', 'compliance-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P30D",
+        "deadLetteringOnMessageExpiration": false,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 100,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'decision-made')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'decision-made', 'risk-monitoring-agent-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P30D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'decision-made')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'drift-detected')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT1H",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'drift-detected', 'model-training-agent-drift-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 3,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'drift-detected')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'drift-detected', 'risk-monitoring-agent-drift-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'drift-detected')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'model-deployed')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P30D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT1H",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-deployed', 'decision-agent-model-update-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P30D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 5,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-deployed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-deployed', 'compliance-agent-model-update-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P30D",
+        "deadLetteringOnMessageExpiration": false,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 100,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-deployed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'data-awaits-ingestion')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'data-awaits-ingestion', 'adf-trigger-subscription')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'data-awaits-ingestion')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'data-awaits-ingestion', 'temp-peek-subscription')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 5,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'data-awaits-ingestion')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'schema-mapping-service')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'schema-detected')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'introspection-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'sampling-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'analysis-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'anonymization-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'mapping-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'schema-mapping-service', 'failed')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 20,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'schema-mapping-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'transformation-service')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'transform-started')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'transformation-service', 'failed')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'training-data-ready')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'training-data-ready', 'orchestrator-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'training-data-ready')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'training-data-ready', 'transformation-complete-training-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'training-data-ready')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'inference-request')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'inference-request', 'orchestrator-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'inference-request')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'scoring-complete')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'scoring-complete', 'backend-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'scoring-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'batch-score-request')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'batch-score-request', 'orchestrator-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'batch-score-request')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'batch-score-complete')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'batch-score-complete', 'backend-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'batch-score-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'prediction-complete')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'prediction-complete', 'orchestrator-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'prediction-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'model-training-started')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-training-started', 'backend-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-training-started')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-training-started', 'cs-backend')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-training-started')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'model-training-complete')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-training-complete', 'orchestrator-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-training-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'model-training-completed')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-training-completed', 'cs-backend')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-training-completed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'model-training-completed', 'test-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'model-training-completed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'credit-risk-predict')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'credit-risk-predict', 'credit-risk-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'credit-risk-predict')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'credit-risk-train')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'credit-risk-train', 'credit-risk-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'credit-risk-train')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'fraud-detect-predict')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'fraud-detect-predict', 'fraud-detection-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'fraud-detect-predict')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'fraud-detection-train')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'fraud-detection-train', 'fraud-detection-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'fraud-detection-train')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'loan-amount-predict')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'loan-amount-predict', 'loan-amount-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'loan-amount-predict')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'loan-amount-train')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'loan-amount-train', 'loan-amount-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'loan-amount-train')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'income-verify-predict')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P1D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'income-verify-predict', 'income-verification-sub')]",
+      "properties": {
+        "lockDuration": "PT1M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'income-verify-predict')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'income-verification-train')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', variables('serviceBusNamespaceName'), 'income-verification-train', 'income-verification-sub')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P7D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', variables('serviceBusNamespaceName'), 'income-verification-train')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/AuthorizationRules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', variables('serviceBusNamespaceName'), 'AgentsAccessPolicy')]",
+      "properties": {
+        "rights": [
+          "Send",
+          "Listen",
+          "Manage"
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "serviceBusNamespaceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName'))]"
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "value": "[variables('serviceBusNamespaceName')]"
+    },
+    "serviceBusEndpoint": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ServiceBus/namespaces', variables('serviceBusNamespaceName')), '2022-10-01-preview').serviceBusEndpoint]"
+    },
+    "serviceBusConnectionString": {
+      "type": "string",
+      "value": "[listKeys(resourceId('Microsoft.ServiceBus/namespaces/AuthorizationRules', variables('serviceBusNamespaceName'), 'AgentsAccessPolicy'), '2022-10-01-preview').primaryConnectionString]"
+    },
+    "topics": {
+      "type": "object",
+      "value": {
+        "batchScoreComplete": "batch-score-complete",
+        "batchScoreRequest": "batch-score-request",
+        "creditRiskPredict": "credit-risk-predict",
+        "creditRiskTrain": "credit-risk-train",
+        "dataAwaitsIngestion": "data-awaits-ingestion",
+        "dataIngested": "data-ingested",
+        "dataQualityChecked": "data-quality-checked",
+        "featuresEngineered": "features-engineered",
+        "decisionMade": "decision-made",
+        "driftDetected": "drift-detected",
+        "fraudDetectPredict": "fraud-detect-predict",
+        "fraudDetectionTrain": "fraud-detection-train",
+        "incomeVerificationTrain": "income-verification-train",
+        "incomeVerifyPredict": "income-verify-predict",
+        "inferenceRequest": "inference-request",
+        "loanAmountPredict": "loan-amount-predict",
+        "loanAmountTrain": "loan-amount-train",
+        "modelDeployed": "model-deployed",
+        "modelTrainingComplete": "model-training-complete",
+        "modelTrainingCompleted": "model-training-completed",
+        "modelTrainingStarted": "model-training-started",
+        "predictionComplete": "prediction-complete",
+        "schemaMappingService": "schema-mapping-service",
+        "scoringComplete": "scoring-complete",
+        "transformationService": "transformation-service",
+        "trainingDataReady": "training-data-ready"
+      }
+    }
+  }
+}

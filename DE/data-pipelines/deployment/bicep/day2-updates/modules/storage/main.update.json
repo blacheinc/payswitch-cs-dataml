@@ -1,0 +1,89 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "11357191930439052868"
+    }
+  },
+  "parameters": {
+    "blobStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Blob storage account name (non-HNS)"
+      }
+    },
+    "dataLakeStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Data Lake storage account name (HNS enabled)"
+      }
+    },
+    "blobContainerNames": {
+      "type": "array",
+      "defaultValue": [
+        "bronze",
+        "silver",
+        "curated"
+      ],
+      "metadata": {
+        "description": "Blob containers/filesystems to ensure exist in blob storage account"
+      }
+    },
+    "dataLakeContainerNames": {
+      "type": "array",
+      "defaultValue": [
+        "bronze",
+        "silver",
+        "curated"
+      ],
+      "metadata": {
+        "description": "Containers/filesystems to ensure exist in ADLS account"
+      }
+    }
+  },
+  "resources": [
+    {
+      "copy": {
+        "name": "blobContainers",
+        "count": "[length(parameters('blobContainerNames'))]"
+      },
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', parameters('blobStorageAccountName'), 'default', parameters('blobContainerNames')[copyIndex()])]",
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "copy": {
+        "name": "dataLakeContainers",
+        "count": "[length(parameters('dataLakeContainerNames'))]"
+      },
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', parameters('dataLakeStorageAccountName'), 'default', parameters('dataLakeContainerNames')[copyIndex()])]",
+      "properties": {
+        "publicAccess": "None"
+      }
+    }
+  ],
+  "outputs": {
+    "blobContainersApplied": {
+      "type": "array",
+      "copy": {
+        "count": "[length(parameters('blobContainerNames'))]",
+        "input": "[parameters('blobContainerNames')[copyIndex()]]"
+      }
+    },
+    "dataLakeContainersApplied": {
+      "type": "array",
+      "copy": {
+        "count": "[length(parameters('dataLakeContainerNames'))]",
+        "input": "[parameters('dataLakeContainerNames')[copyIndex()]]"
+      }
+    }
+  }
+}

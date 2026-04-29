@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "namingPrefix": {
+            "value": "blache-cdtscr-staging"
+        },
+        "vnetId": {
+            "value": "REPLACE_STAGING_VNET_ID"
+        },
+        "privateEndpointsSubnetId": {
+            "value": "REPLACE_STAGING_PRIVATE_ENDPOINT_SUBNET_ID"
+        },
+        "dataResourceGroupName": {
+            "value": "blache-cdtscr-staging-data-rg"
+        },
+        "securityResourceGroupName": {
+            "value": "blache-cdtscr-staging-security-rg"
+        },
+        "storageAccountName": {
+            "value": "REPLACE_STAGING_STORAGE"
+        },
+        "dataLakeStorageAccountName": {
+            "value": "REPLACE_STAGING_DATALAKE"
+        },
+        "serviceBusNamespaceName": {
+            "value": "REPLACE_STAGING_SERVICEBUS"
+        },
+        "redisName": {
+            "value": "REPLACE_STAGING_REDIS"
+        },
+        "postgresServerName": {
+            "value": "REPLACE_STAGING_POSTGRES"
+        },
+        "keyVaultName": {
+            "value": "REPLACE_STAGING_KEYVAULT"
+        },
+        "tags": {
+            "value": {
+                "Environment": "staging",
+                "ManagedBy": "Bicep",
+                "Project": "Credit-Scoring"
+            }
+        }
+    }
+}

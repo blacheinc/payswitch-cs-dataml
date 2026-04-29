@@ -1,0 +1,7 @@
+{
+  "upload_id": "test-upload-001-excel",
+  "bank_id": "Bank-001",
+  "bronze_blob_path": "bronze/training/Bank-001/2026-02-24/test-upload-001-excel.xlsx",
+  "ingestion_timestamp": "2026-02-25T05:49:44.650853Z",
+  "status": "ingested"
+}

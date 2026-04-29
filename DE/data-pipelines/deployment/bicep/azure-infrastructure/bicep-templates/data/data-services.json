@@ -1,0 +1,450 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "12825774630672686571"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "postgresSkuName": {
+      "type": "string",
+      "defaultValue": "Standard_B1ms",
+      "metadata": {
+        "description": "PostgreSQL SKU name (e.g., Standard_B1ms for Burstable, Standard_D2s_v3 for GeneralPurpose)"
+      }
+    },
+    "redisCacheSku": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "metadata": {
+        "description": "Redis Cache SKU"
+      }
+    },
+    "backupRetentionDays": {
+      "type": "int",
+      "defaultValue": 30,
+      "metadata": {
+        "description": "Backup retention days"
+      }
+    },
+    "enableHA": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable High Availability"
+      }
+    },
+    "keyVaultName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name for secret storage (currently unused but reserved for future use)"
+      }
+    },
+    "subnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Data subnet ID for private endpoints"
+      }
+    },
+    "vnetId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Virtual Network ID for Private DNS Zone linking (optional for dev, required for prod)"
+      }
+    },
+    "mlSubnetId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "ML subnet ID (optional) to allow Azure ML compute access to storage/Data Lake"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "production"
+      ],
+      "metadata": {
+        "description": "Environment (dev or production) - controls publicNetworkAccess"
+      }
+    },
+    "privateNetworkMode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable private networking posture regardless of environment"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    }
+  },
+  "variables": {
+    "postgresServerName": "[format('{0}-postgres-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+    "redisName": "[format('{0}-redis-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+    "shortPrefix": "[substring(split(parameters('namingPrefix'), '-')[0], 0, min(8, length(split(parameters('namingPrefix'), '-')[0])))]",
+    "storageAccountName": "[format('{0}st{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id), 0, 13))]",
+    "dataLakeName": "[format('{0}dl{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id), 0, 13))]",
+    "postgresAdminUser": "csadmin",
+    "postgresAdminPassword": "[format('{0}!Aa1', uniqueString(resourceGroup().id, 'postgres'))]",
+    "isProduction": "[or(equals(parameters('environment'), 'production'), parameters('privateNetworkMode'))]",
+    "postgresPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
+    "redisPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
+    "storageDefaultAction": "[if(variables('isProduction'), 'Deny', 'Allow')]",
+    "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "[variables('storageDefaultAction')]",
+          "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+        },
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "properties": {
+        "deleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        },
+        "containerDeleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'models')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'artifacts')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'data')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('dataLakeName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "isHnsEnabled": true,
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "[variables('storageDefaultAction')]",
+          "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+        },
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}', variables('dataLakeName'), 'default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('dataLakeName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'raw')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'processed')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-01-01",
+      "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'curated')]",
+      "properties": {
+        "publicAccess": "None"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+      ]
+    },
+    {
+      "condition": "[and(not(empty(parameters('vnetId'))), variables('isProduction'))]",
+      "type": "Microsoft.Network/privateDnsZones",
+      "apiVersion": "2020-06-01",
+      "name": "privatelink.postgres.database.azure.com",
+      "location": "global",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "condition": "[and(not(empty(parameters('vnetId'))), variables('isProduction'))]",
+      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+      "apiVersion": "2020-06-01",
+      "name": "[format('{0}/{1}', 'privatelink.postgres.database.azure.com', format('{0}-postgres-dns-link', parameters('namingPrefix')))]",
+      "location": "global",
+      "properties": {
+        "registrationEnabled": false,
+        "virtualNetwork": {
+          "id": "[parameters('vnetId')]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "apiVersion": "2022-12-01",
+      "name": "[variables('postgresServerName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "[parameters('postgresSkuName')]",
+        "tier": "[if(contains(parameters('postgresSkuName'), 'Standard_B'), 'Burstable', 'GeneralPurpose')]"
+      },
+      "properties": {
+        "administratorLogin": "[variables('postgresAdminUser')]",
+        "administratorLoginPassword": "[variables('postgresAdminPassword')]",
+        "version": "14",
+        "storage": {
+          "storageSizeGB": 128
+        },
+        "backup": {
+          "backupRetentionDays": "[parameters('backupRetentionDays')]",
+          "geoRedundantBackup": "[if(parameters('enableHA'), 'Enabled', 'Disabled')]"
+        },
+        "highAvailability": "[if(parameters('enableHA'), createObject('mode', 'ZoneRedundant'), createObject('mode', 'Disabled'))]",
+        "network": "[if(and(and(variables('isProduction'), not(empty(parameters('vnetId')))), not(empty(parameters('subnetId')))), createObject('publicNetworkAccess', variables('postgresPublicNetworkAccess'), 'delegatedSubnetResourceId', parameters('subnetId'), 'privateDnsZoneArmResourceId', resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')), createObject('publicNetworkAccess', variables('postgresPublicNetworkAccess')))]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2022-12-01",
+      "name": "[format('{0}/{1}', variables('postgresServerName'), 'credit_scoring')]",
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2022-12-01",
+      "name": "[format('{0}/{1}', variables('postgresServerName'), 'metadata')]",
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+      "apiVersion": "2022-12-01",
+      "name": "[format('{0}/{1}', variables('postgresServerName'), 'mlflow')]",
+      "properties": {
+        "charset": "UTF8",
+        "collation": "en_US.utf8"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ]
+    },
+    {
+      "condition": "[not(parameters('privateNetworkMode'))]",
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+      "apiVersion": "2022-12-01",
+      "name": "[format('{0}/{1}', variables('postgresServerName'), 'AllowAzureServices')]",
+      "properties": {
+        "startIpAddress": "0.0.0.0",
+        "endIpAddress": "0.0.0.0"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Cache/redis",
+      "apiVersion": "2023-08-01",
+      "name": "[variables('redisName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "sku": {
+          "name": "[parameters('redisCacheSku')]",
+          "family": "[if(equals(parameters('redisCacheSku'), 'Premium'), 'P', 'C')]",
+          "capacity": "[if(equals(parameters('redisCacheSku'), 'Premium'), 1, 1)]"
+        },
+        "enableNonSslPort": false,
+        "minimumTlsVersion": "1.2",
+        "publicNetworkAccess": "[variables('redisPublicNetworkAccess')]",
+        "redisConfiguration": {
+          "maxmemory-policy": "allkeys-lru"
+        },
+        "redisVersion": "6"
+      }
+    }
+  ],
+  "outputs": {
+    "storageAccountId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[variables('storageAccountName')]"
+    },
+    "dataLakeId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('dataLakeName'))]"
+    },
+    "dataLakeName": {
+      "type": "string",
+      "value": "[variables('dataLakeName')]"
+    },
+    "postgresServerId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[variables('postgresServerName')]"
+    },
+    "postgresServerFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName')), '2022-12-01').fullyQualifiedDomainName]"
+    },
+    "postgresAdminUser": {
+      "type": "string",
+      "value": "[variables('postgresAdminUser')]"
+    },
+    "redisId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Cache/redis', variables('redisName'))]"
+    },
+    "redisName": {
+      "type": "string",
+      "value": "[variables('redisName')]"
+    },
+    "redisHostName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Cache/redis', variables('redisName')), '2023-08-01').hostName]"
+    },
+    "redisSslPort": {
+      "type": "int",
+      "value": "[reference(resourceId('Microsoft.Cache/redis', variables('redisName')), '2023-08-01').sslPort]"
+    }
+  }
+}

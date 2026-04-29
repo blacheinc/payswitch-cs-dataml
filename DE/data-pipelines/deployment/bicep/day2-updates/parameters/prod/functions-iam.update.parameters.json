@@ -1,0 +1,80 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionApps": {
+      "value": [
+        {
+          "name": "payswitch-creditscore-prod-schema-mapping-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-creditscore-prod-training-ingestion-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-creditscore-prod-transformation-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-creditscore-prod-adf-trigger-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-creditscore-prod-file-checksum-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-credit-risk",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-customer-service",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-fraud-detection",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-income-verification",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-loan-amount",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "payswitch-cs-orchestrator",
+          "resourceGroupName": ""
+        }
+      ]
+    },
+    "excludedFunctionAppNames": {
+      "value": [
+        "payswitch-creditscore-prod-file-checksum-func"
+      ]
+    },
+    "blobStorageAccountName": {
+      "value": ""
+    },
+    "dataLakeStorageAccountName": {
+      "value": ""
+    },
+    "storageResourceGroupName": {
+      "value": ""
+    },
+    "keyVaultName": {
+      "value": ""
+    },
+    "keyVaultResourceGroupName": {
+      "value": ""
+    },
+    "serviceBusNamespaceName": {
+      "value": ""
+    },
+    "serviceBusResourceGroupName": {
+      "value": ""
+    }
+  }
+}

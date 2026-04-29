@@ -1,0 +1,22 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    "KEY_VAULT_URL": "https://YOUR_KEYVAULT_NAME.vault.azure.net/",
+    "ENVIRONMENT": "local",
+    "ServiceBusConnectionString": "Endpoint=sb://YOUR_NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOUR_POLICY;SharedAccessKey=YOUR_KEY",
+    "SERVICEBUS_TOPIC_NAME": "data-awaits-ingestion",
+    "SERVICEBUS_SUBSCRIPTION_NAME": "temp-peek-subscription",
+    "BLOB_STORAGE_ACCOUNT_NAME": "YOUR_RAW_BLOB_ACCOUNT",
+    "BLOB_CONTAINER_NAME": "data",
+    "BlobStorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=YOUR_RAW_BLOB_ACCOUNT;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net",
+    "DATALAKE_STORAGE_ACCOUNT_NAME": "YOUR_ADLS_ACCOUNT",
+    "DATALAKE_STORAGE_CONNECTION_STRING": "",
+    "PostgreSQLConnectionString": "postgresql://USER:PASSWORD@YOUR_SERVER.postgres.database.azure.com:5432/DBNAME?sslmode=require",
+    "BRONZE_CONTAINER_NAME": "bronze",
+    "LOG_LEVEL": "WARNING"
+  },
+  "ConnectionStrings": {}
+}

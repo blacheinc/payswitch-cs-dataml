@@ -1,0 +1,13 @@
+{
+  "training_upload_id": "70257f35-edcf-4c1c-a129-4d5ded8ceaa5",
+  "data_source_id": "b4ed5120-65f4-46c5-b687-dc895a1d6bbf",
+  "file_format": "json",
+  "file_size_bytes": 10552,
+  "raw_file_path": "b4ed5120-65f4-46c5-b687-dc895a1d6bbf/test_ingestion_20260316_073604.json",
+  "serviceBusNamespace": "ServiceBusNamespace",
+  "fileChecksumCalculatorBaseUrl": "FileChecksumCalculatorFunctionBaseUrl",
+  "fileChecksumCalculatorKey": "FileChecksumCalculatorFunctionKey",
+  "run_id": "a8a6fc79-2f2c-4223-985c-eea3fb075c4f",
+  "dataAwaitsIngestionTopic": "data-awaits-ingestion",
+  "dataIngestedTopic": "data-ingested"
+}

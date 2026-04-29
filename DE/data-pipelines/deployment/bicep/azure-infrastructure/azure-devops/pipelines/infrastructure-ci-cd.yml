@@ -1,0 +1,407 @@
+# ==================================================
+# Azure DevOps Pipeline - Infrastructure CI/CD
+# Credit Scoring + Agentic AI Platform
+# ==================================================
+
+name: Infrastructure-Deploy-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - azure-infrastructure/**
+    exclude:
+      - azure-infrastructure/docs/**
+      - azure-infrastructure/**.md
+
+pr:
+  branches:
+    include:
+      - main
+      - develop
+  paths:
+    include:
+      - azure-infrastructure/**
+
+variables:
+  - group: 'azure-credentials'  # Variable group with service connection details
+  - name: bicepPath
+    value: 'azure-infrastructure/bicep-templates'
+  - name: azureServiceConnection
+    value: 'PaySwitch-Azure-ServiceConnection'
+
+stages:
+  # ==================================================
+  # Stage 1: Validate
+  # ==================================================
+  - stage: Validate
+    displayName: 'Validate Bicep Templates'
+    jobs:
+      - job: ValidateBicep
+        displayName: 'Validate Bicep Syntax'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Install Bicep CLI'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az bicep install
+                az bicep version
+
+          - task: AzureCLI@2
+            displayName: 'Lint Bicep Files'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                cd $(Build.SourcesDirectory)/$(bicepPath)
+                for file in $(find . -name "*.bicep"); do
+                  echo "Linting $file..."
+                  az bicep build --file $file
+                done
+
+          - task: AzureCLI@2
+            displayName: 'Validate Deployment'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                cd $(Build.SourcesDirectory)/$(bicepPath)
+
+                # Determine environment based on branch
+                if [[ "$(Build.SourceBranchName)" == "main" ]]; then
+                  ENV="prod"
+                elif [[ "$(Build.SourceBranchName)" == "develop" ]]; then
+                  ENV="staging"
+                else
+                  ENV="dev"
+                fi
+
+                echo "Validating for environment: $ENV"
+
+                az deployment sub validate \
+                  --location eastus \
+                  --template-file main.bicep \
+                  --parameters @main.parameters.json \
+                  --parameters environment=$ENV \
+                  --name "validation-$(Build.BuildNumber)"
+
+      - job: SecurityScan
+        displayName: 'Security Scan'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: securedevelopmentteam.vss-secure-development-tools.build-task-credscan.CredScan@3
+            displayName: 'Credential Scanner'
+            inputs:
+              toolMajorVersion: 'V2'
+              scanFolder: '$(Build.SourcesDirectory)/azure-infrastructure'
+              suppressionsFile: '$(Build.SourcesDirectory)/azure-infrastructure/.credscan-suppressions.json'
+
+          - task: securedevelopmentteam.vss-secure-development-tools.build-task-publishsecurityanalysislogs.PublishSecurityAnalysisLogs@3
+            displayName: 'Publish Security Analysis Logs'
+
+  # ==================================================
+  # Stage 2: Deploy to Dev
+  # ==================================================
+  - stage: DeployDev
+    displayName: 'Deploy to Development'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployInfraDev
+        displayName: 'Deploy Infrastructure - Dev'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'Development'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep Templates - Dev'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Build.SourcesDirectory)/$(bicepPath)
+
+                      az deployment sub create \
+                        --location eastus \
+                        --template-file main.bicep \
+                        --parameters @main.parameters.json \
+                        --parameters environment=dev \
+                        --name "deploy-dev-$(Build.BuildNumber)" \
+                        --verbose
+
+                - task: AzureCLI@2
+                  displayName: 'Get Deployment Outputs'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "deploy-dev-$(Build.BuildNumber)" \
+                        --query properties.outputs \
+                        --output json > $(Build.ArtifactStagingDirectory)/deployment-outputs-dev.json
+
+                - task: PublishBuildArtifacts@1
+                  displayName: 'Publish Deployment Outputs'
+                  inputs:
+                    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+                    ArtifactName: 'deployment-outputs-dev'
+
+  # ==================================================
+  # Stage 3: Deploy to Staging
+  # ==================================================
+  - stage: DeployStaging
+    displayName: 'Deploy to Staging'
+    dependsOn: DeployDev
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/develop'))
+    jobs:
+      - deployment: DeployInfraStaging
+        displayName: 'Deploy Infrastructure - Staging'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'Staging'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep Templates - Staging'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Build.SourcesDirectory)/$(bicepPath)
+
+                      az deployment sub create \
+                        --location eastus \
+                        --template-file main.bicep \
+                        --parameters @main.parameters.json \
+                        --parameters environment=staging \
+                        --name "deploy-staging-$(Build.BuildNumber)" \
+                        --verbose
+
+                - task: AzureCLI@2
+                  displayName: 'Get Deployment Outputs'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "deploy-staging-$(Build.BuildNumber)" \
+                        --query properties.outputs \
+                        --output json > $(Build.ArtifactStagingDirectory)/deployment-outputs-staging.json
+
+                - task: PublishBuildArtifacts@1
+                  displayName: 'Publish Deployment Outputs'
+                  inputs:
+                    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+                    ArtifactName: 'deployment-outputs-staging'
+
+  # ==================================================
+  # Stage 4: Deploy to Production
+  # ==================================================
+  - stage: DeployProduction
+    displayName: 'Deploy to Production'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: DeployInfraProd
+        displayName: 'Deploy Infrastructure - Production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: 'Production'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: ManualValidation@0
+                  displayName: 'Manual Approval Required'
+                  inputs:
+                    notifyUsers: 'ops@payswitch.com.gh'
+                    instructions: 'Please review and approve production deployment'
+                    onTimeout: 'reject'
+
+                - task: AzureCLI@2
+                  displayName: 'Deploy Bicep Templates - Production'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      cd $(Build.SourcesDirectory)/$(bicepPath)
+
+                      az deployment sub create \
+                        --location eastus \
+                        --template-file main.bicep \
+                        --parameters @main.parameters.json \
+                        --parameters environment=prod \
+                        --name "deploy-prod-$(Build.BuildNumber)" \
+                        --verbose
+
+                - task: AzureCLI@2
+                  displayName: 'Get Deployment Outputs'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      az deployment sub show \
+                        --name "deploy-prod-$(Build.BuildNumber)" \
+                        --query properties.outputs \
+                        --output json > $(Build.ArtifactStagingDirectory)/deployment-outputs-prod.json
+
+                - task: PublishBuildArtifacts@1
+                  displayName: 'Publish Deployment Outputs'
+                  inputs:
+                    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+                    ArtifactName: 'deployment-outputs-prod'
+
+                - task: AzureCLI@2
+                  displayName: 'Verify Deployment Health'
+                  inputs:
+                    azureSubscription: $(azureServiceConnection)
+                    scriptType: 'bash'
+                    scriptLocation: 'inlineScript'
+                    inlineScript: |
+                      # Check AKS cluster health
+                      AKS_NAME=$(az aks list --query "[0].name" -o tsv)
+                      AKS_RG=$(az aks list --query "[0].resourceGroup" -o tsv)
+
+                      az aks get-credentials \
+                        --resource-group $AKS_RG \
+                        --name $AKS_NAME \
+                        --overwrite-existing
+
+                      kubectl get nodes
+                      kubectl get pods --all-namespaces
+
+                      echo "Deployment health check completed"
+
+  # ==================================================
+  # Stage 5: Smoke Tests
+  # ==================================================
+  - stage: SmokeTests
+    displayName: 'Run Smoke Tests'
+    dependsOn:
+      - DeployDev
+      - DeployStaging
+      - DeployProduction
+    condition: succeededOrFailed()
+    jobs:
+      - job: InfrastructureSmokeTests
+        displayName: 'Infrastructure Smoke Tests'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Test Resource Group Creation'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                # Determine environment
+                if [[ "$(Build.SourceBranchName)" == "main" ]]; then
+                  ENV="prod"
+                elif [[ "$(Build.SourceBranchName)" == "develop" ]]; then
+                  ENV="staging"
+                else
+                  ENV="dev"
+                fi
+
+                # Check resource groups
+                EXPECTED_RGS=8
+                ACTUAL_RGS=$(az group list --query "[?contains(name, 'payswitch-creditscore-$ENV')].name" -o tsv | wc -l)
+
+                if [ $ACTUAL_RGS -eq $EXPECTED_RGS ]; then
+                  echo "✓ All $EXPECTED_RGS resource groups created"
+                else
+                  echo "✗ Expected $EXPECTED_RGS resource groups, found $ACTUAL_RGS"
+                  exit 1
+                fi
+
+          - task: AzureCLI@2
+            displayName: 'Test AKS Cluster'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                AKS_NAME=$(az aks list --query "[0].name" -o tsv)
+                AKS_STATE=$(az aks show --name $AKS_NAME --resource-group $(az aks list --query "[0].resourceGroup" -o tsv) --query "powerState.code" -o tsv)
+
+                if [ "$AKS_STATE" == "Running" ]; then
+                  echo "✓ AKS cluster is running"
+                else
+                  echo "✗ AKS cluster is not running: $AKS_STATE"
+                  exit 1
+                fi
+
+          - task: AzureCLI@2
+            displayName: 'Test PostgreSQL Connectivity'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                PG_SERVER=$(az postgres flexible-server list --query "[0].name" -o tsv)
+                PG_STATE=$(az postgres flexible-server show --name $PG_SERVER --resource-group $(az postgres flexible-server list --query "[0].resourceGroup" -o tsv) --query "state" -o tsv)
+
+                if [ "$PG_STATE" == "Ready" ]; then
+                  echo "✓ PostgreSQL server is ready"
+                else
+                  echo "✗ PostgreSQL server is not ready: $PG_STATE"
+                  exit 1
+                fi
+
+          - task: AzureCLI@2
+            displayName: 'Test Key Vault Access'
+            inputs:
+              azureSubscription: $(azureServiceConnection)
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                KV_NAME=$(az keyvault list --query "[0].name" -o tsv)
+
+                # Test secret creation
+                az keyvault secret set \
+                  --vault-name $KV_NAME \
+                  --name "smoke-test-secret" \
+                  --value "test-value"
+
+                # Test secret retrieval
+                SECRET_VALUE=$(az keyvault secret show \
+                  --vault-name $KV_NAME \
+                  --name "smoke-test-secret" \
+                  --query "value" -o tsv)
+
+                if [ "$SECRET_VALUE" == "test-value" ]; then
+                  echo "✓ Key Vault is accessible"
+                  az keyvault secret delete --vault-name $KV_NAME --name "smoke-test-secret"
+                else
+                  echo "✗ Key Vault access failed"
+                  exit 1
+                fi

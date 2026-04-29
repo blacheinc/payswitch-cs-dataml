@@ -1,0 +1,151 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "1247772416615258631"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    },
+    "functionsStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name for function runtime"
+      }
+    },
+    "allowedCallerCidrs": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Optional list of CIDRs allowed to call function apps (empty = no explicit allow-list)."
+      }
+    },
+    "disableScmPublicAccess": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Whether to disable public network access for SCM/Kudu endpoint."
+      }
+    }
+  },
+  "variables": {
+    "copy": [
+      {
+        "name": "allowedCallerRules",
+        "count": "[length(parameters('allowedCallerCidrs'))]",
+        "input": {
+          "ipAddress": "[parameters('allowedCallerCidrs')[copyIndex('allowedCallerRules')]]",
+          "action": "Allow",
+          "priority": "[add(200, copyIndex('allowedCallerRules'))]",
+          "name": "[format('AllowCaller{0}', copyIndex('allowedCallerRules'))]"
+        }
+      }
+    ],
+    "planName": "[format('{0}-functions-consumption-plan', parameters('namingPrefix'))]",
+    "functionApps": [
+      "[format('{0}-schema-mapping-func', parameters('namingPrefix'))]",
+      "[format('{0}-transformation-func', parameters('namingPrefix'))]",
+      "[format('{0}-training-ingestion-func', parameters('namingPrefix'))]",
+      "[format('{0}-adf-trigger-func', parameters('namingPrefix'))]",
+      "[format('{0}-file-checksum-func', parameters('namingPrefix'))]"
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('planName')]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "sku": {
+        "name": "Y1",
+        "tier": "Dynamic",
+        "size": "Y1",
+        "capacity": 0
+      },
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "reserved": false,
+        "perSiteScaling": false
+      }
+    },
+    {
+      "copy": {
+        "name": "functionAppsResource",
+        "count": "[length(variables('functionApps'))]"
+      },
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('functionApps')[copyIndex()]]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]",
+        "httpsOnly": true,
+        "publicNetworkAccess": "Enabled",
+        "siteConfig": {
+          "minTlsVersion": "1.2",
+          "ftpsState": "Disabled",
+          "scmIpSecurityRestrictionsUseMain": true,
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
+            },
+            {
+              "name": "AzureWebJobsStorage__accountName",
+              "value": "[parameters('functionsStorageAccountName')]"
+            }
+          ],
+          "ipSecurityRestrictions": "[concat(createArray(createObject('ipAddress', 'AzureCloud', 'action', 'Allow', 'priority', 100, 'name', 'AllowAzureServices', 'description', 'Allow Azure service traffic')), variables('allowedCallerRules'), createArray(createObject('ipAddress', 'Any', 'action', 'Deny', 'priority', 2147483647, 'name', 'DenyAll')))]",
+          "scmIpSecurityRestrictions": "[if(parameters('disableScmPublicAccess'), createArray(createObject('ipAddress', 'Any', 'action', 'Deny', 'priority', 100, 'name', 'DenyScmPublic')), createArray())]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "planId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]"
+    },
+    "functionAppNames": {
+      "type": "array",
+      "value": "[variables('functionApps')]"
+    }
+  }
+}
