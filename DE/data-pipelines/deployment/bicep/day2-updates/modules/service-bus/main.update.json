@@ -1,0 +1,654 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "1061151039055636234"
+    }
+  },
+  "parameters": {
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Existing Service Bus namespace name"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'data-ingested', 'quality_report')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'data-ingested', 'start-transformation')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'data-ingested', 'transformed')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}', parameters('serviceBusNamespaceName'), 'transformation-service')]",
+      "properties": {
+        "maxSizeInMegabytes": 1024,
+        "defaultMessageTimeToLive": "P7D",
+        "requiresDuplicateDetection": true,
+        "duplicateDetectionHistoryTimeWindow": "PT10M",
+        "enableBatchedOperations": true,
+        "enablePartitioning": false,
+        "supportOrdering": true
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'transform-started')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}', parameters('serviceBusNamespaceName'), 'transformation-service', 'failed')]",
+      "properties": {
+        "lockDuration": "PT5M",
+        "requiresSession": false,
+        "defaultMessageTimeToLive": "P1D",
+        "deadLetteringOnMessageExpiration": true,
+        "deadLetteringOnFilterEvaluationExceptions": true,
+        "maxDeliveryCount": 10,
+        "enableBatchedOperations": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics', parameters('serviceBusNamespaceName'), 'transformation-service')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-awaits-ingestion', 'adf-trigger-subscription', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-awaits-ingestion', 'temp-peek-subscription', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'quality_report', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'quality_report')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'start-transformation', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'start-transformation')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'transformed', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'transformed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'analysis-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'anonymization-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'failed', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'introspection-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'mapping-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'sampling-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'schema-detected', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'transform-started', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'transform-started')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'failed', '$Default')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "1 = 0"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'failed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-awaits-ingestion', 'adf-trigger-subscription', 'ADFProcessingSystemFilter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "processing_system = 'ADF'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-awaits-ingestion', 'temp-peek-subscription', 'CheckTrainingUploadID')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "processing_system = 'ADF'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'quality_report', 'quality_report_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND subscription = 'quality_report'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'quality_report')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'start-transformation', 'RunIDCheck')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "subscription = 'start-transformation'\r\nAND run_id IS NOT NULL\r\nAND training_upload_id IS NOT NULL\r\nAND bank_id IS NOT NULL\r\nAND bronze_blob_path IS NOT NULL\r\nAND (status IS NULL OR status <> 'ERROR')\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'start-transformation')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'data-ingested', 'transformed', 'transformed_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "subscription = 'transformed'\r\nAND status = 'TRANSFORMED'\r\nAND run_id IS NOT NULL\r\nAND transformed_file_path IS NOT NULL\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'data-ingested', 'transformed')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'analysis-complete', 'analysis_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND training_upload_id IS NOT NULL AND subscription = 'analysis-complete'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'anonymization-complete', 'anonymization_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND training_upload_id IS NOT NULL AND subscription = 'anonymization-complete'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'failed', 'failed_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND subscription = 'failed'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'introspection-complete', 'introspection_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND training_upload_id IS NOT NULL AND subscription = 'introspection-complete'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'mapping-complete', 'mapping_complete_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "status = 'MAPPING_COMPLETE' AND subscription = 'mapping-complete'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'sampling-complete', 'sampling_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND training_upload_id IS NOT NULL AND subscription = 'sampling-complete'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'schema-mapping-service', 'schema-detected', 'schema_detected_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "run_id IS NOT NULL AND training_upload_id IS NOT NULL AND subscription = 'schema-detected'\r\n"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'transform-started', 'transform_started_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "status = 'STARTING' AND subscription = 'transform-started'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'transform-started')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete', 'training_curation_complete_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "flow_type = 'training' AND status = 'TRANSFORMED' AND subscription = 'training-curation-complete'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-curation-complete')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml', 'training_ready_for_ml_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "flow_type = 'training' AND status = 'ML_HANDOFF_READY' AND subscription = 'training-ready-for-ml'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'training-ready-for-ml')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready', 'inference_features_ready_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "flow_type = 'inference' AND status = 'INFERENCE_REQUEST_READY' AND subscription = 'inference-features-ready'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-features-ready')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop', 'inference_hard_stop_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "flow_type = 'inference' AND status = 'HARD_STOP' AND subscription = 'inference-hard-stop'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'inference-hard-stop')]"
+      ]
+    },
+    {
+      "type": "Microsoft.ServiceBus/namespaces/topics/subscriptions/rules",
+      "apiVersion": "2022-10-01-preview",
+      "name": "[format('{0}/{1}/{2}/{3}', parameters('serviceBusNamespaceName'), 'transformation-service', 'failed', 'transformation_failed_filter')]",
+      "properties": {
+        "filterType": "SqlFilter",
+        "sqlFilter": {
+          "sqlExpression": "status = 'FAILED' AND subscription = 'failed'\r\n"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ServiceBus/namespaces/topics/subscriptions', parameters('serviceBusNamespaceName'), 'transformation-service', 'failed')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "updatedRuleNames": {
+      "type": "array",
+      "value": [
+        "ADFProcessingSystemFilter",
+        "CheckTrainingUploadID",
+        "quality_report_filter",
+        "RunIDCheck",
+        "transformed_filter",
+        "analysis_filter",
+        "anonymization_filter",
+        "failed_filter",
+        "introspection_filter",
+        "mapping_complete_filter",
+        "sampling_filter",
+        "schema_detected_filter",
+        "transform_started_filter",
+        "training_curation_complete_filter",
+        "training_ready_for_ml_filter",
+        "inference_features_ready_filter",
+        "inference_hard_stop_filter",
+        "transformation_failed_filter"
+      ]
+    }
+  }
+}

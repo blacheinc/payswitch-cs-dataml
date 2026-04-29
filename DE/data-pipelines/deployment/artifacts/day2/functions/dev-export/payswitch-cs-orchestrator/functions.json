@@ -1,0 +1,266 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "v1/rules/evaluate",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "api_evaluate_rules",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "api_evaluate_rules",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/api_evaluate_rules",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/api_evaluate_rules",
+    "invokeUrlTemplate": "https://payswitch-cs-orchestrator.azurewebsites.net/api/v1/rules/evaluate",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/api_evaluate_rules",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/api_evaluate_rules.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "orchestrator-sub",
+          "topicName": "batch-score-request",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "batch_score_orchestrator",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "batch_score_orchestrator",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/batch_score_orchestrator",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/batch_score_orchestrator",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/batch_score_orchestrator",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/batch_score_orchestrator.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "direction": "IN",
+          "name": "timer",
+          "schedule": "0 0 0 * * 1",
+          "type": "timerTrigger"
+        }
+      ],
+      "entryPoint": "drift_monitor",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "drift_monitor",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/drift_monitor",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/drift_monitor",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/drift_monitor",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/drift_monitor.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "orchestrator-sub",
+          "topicName": "inference-request",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "inference_orchestrator",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "inference_orchestrator",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/inference_orchestrator",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/inference_orchestrator",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/inference_orchestrator",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/inference_orchestrator.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "orchestrator-sub",
+          "topicName": "prediction-complete",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "prediction_result_collector",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "prediction_result_collector",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/prediction_result_collector",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/prediction_result_collector",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/prediction_result_collector",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/prediction_result_collector.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "orchestrator-sub",
+          "topicName": "training-data-ready",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "training_orchestrator",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "training_orchestrator",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/training_orchestrator",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/training_orchestrator",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/training_orchestrator",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/training_orchestrator.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "orchestrator-sub",
+          "topicName": "model-training-complete",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "training_result_collector",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "training_result_collector",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/functions/training_result_collector",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-orchestrator/functions/training_result_collector",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-orchestrator/training_result_collector",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-orchestrator.azurewebsites.net/admin/vfs/tmp/FunctionsData/training_result_collector.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

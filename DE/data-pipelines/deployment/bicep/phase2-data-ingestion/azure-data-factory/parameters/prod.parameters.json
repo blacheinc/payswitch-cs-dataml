@@ -1,0 +1,40 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "location":  {
+                                        "value":  "eastus2"
+                                    },
+                       "namingPrefix":  {
+                                            "value":  "payswitch-creditscore-prod"
+                                        },
+                       "deploymentEnvironment":  {
+                                                     "value":  "prod"
+                                                 },
+                       "dataLakeStorageAccountName":  {
+                                                          "value":  "payswitcdlqautpja4gjia6"
+                                                      },
+                       "keyVaultName":  {
+                                            "value":  "payswitchkvufdjduon7l"
+                                        },
+                       "serviceBusNamespaceName":  {
+                                                       "value":  "payswitch-creditscore-prod-sb-qautpja4gjia6"
+                                                   },
+                       "sourceBlobStorageAccountName":  {
+                                                            "value":  "payswitcstqautpja4gjia6"
+                                                        },
+                       "metadataPostgresServerFqdn":  {
+                                                          "value":  "payswitch-creditscore-prod-postgres-qautpja4gjia6.postgres.database.azure.com"
+                                                      },
+                       "privateNetworkMode":  {
+                                                  "value":  true
+                                              },
+                       "tags":  {
+                                    "value":  {
+                                                  "Environment":  "prod",
+                                                  "ManagedBy":  "Bicep",
+                                                  "Project":  "Credit-Scoring"
+                                              }
+                                }
+                   }
+}

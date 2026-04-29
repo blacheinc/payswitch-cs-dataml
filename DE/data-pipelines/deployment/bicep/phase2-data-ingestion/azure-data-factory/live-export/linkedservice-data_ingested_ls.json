@@ -1,0 +1,34 @@
+﻿{
+    "etag":  "5900b3b9-0000-0200-0000-698c95a10000",
+    "id":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.DataFactory/factories/blache-cdtscr-dev-adf-y27jgavel2x32/linkedservices/data_ingested_ls",
+    "name":  "data_ingested_ls",
+    "properties":  {
+                       "accountKey":  null,
+                       "additionalProperties":  null,
+                       "annotations":  [
+
+                                       ],
+                       "azureCloudType":  null,
+                       "connectVia":  {
+                                          "parameters":  null,
+                                          "referenceName":  "integrationRuntime1",
+                                          "type":  "IntegrationRuntimeReference"
+                                      },
+                       "credential":  null,
+                       "description":  null,
+                       "encryptedCredential":  null,
+                       "parameters":  null,
+                       "sasToken":  null,
+                       "sasUri":  null,
+                       "servicePrincipalCredential":  null,
+                       "servicePrincipalCredentialType":  null,
+                       "servicePrincipalId":  null,
+                       "servicePrincipalKey":  null,
+                       "tenant":  null,
+                       "type":  "AzureBlobFS",
+                       "url":  "https://blachedly27jgavel2x32.dfs.core.windows.net/",
+                       "version":  null
+                   },
+    "resourceGroup":  "blache-cdtscr-dev-data-rg",
+    "type":  "Microsoft.DataFactory/factories/linkedservices"
+}

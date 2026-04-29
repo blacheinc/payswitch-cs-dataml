@@ -1,0 +1,11 @@
+# Azure Functions
+azure-functions>=1.18.0
+
+# Azure Identity (for Managed Identity and Azure CLI auth)
+azure-identity>=1.15.0
+
+# Azure Key Vault (for secrets management)
+azure-keyvault-secrets>=4.8.0
+
+# Azure Data Factory Management SDK (official Python SDK)
+azure-mgmt-datafactory>=4.0.0

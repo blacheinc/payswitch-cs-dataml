@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "KEY_VAULT_URL": "https://YOUR_KEYVAULT_NAME.vault.azure.net/",
+    "ServiceBusConnectionString": "Endpoint=sb://YOUR_NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOUR_POLICY;SharedAccessKey=YOUR_KEY",
+    "ADF_SUBSCRIPTION_ID": "00000000-0000-0000-0000-000000000000",
+    "ADF_RESOURCE_GROUP": "YOUR_RESOURCE_GROUP",
+    "ADF_FACTORY_NAME": "YOUR_DATA_FACTORY_NAME",
+    "ADF_PIPELINE_NAME": "pipeline-training-data-ingestion",
+    "ENVIRONMENT": "local"
+  },
+  "ConnectionStrings": {}
+}

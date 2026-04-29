@@ -1,0 +1,47 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "GET",
+            "POST"
+          ],
+          "name": "req",
+          "route": "calculate_checksum",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "calculate_checksum_http",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "calculate_checksum_http",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-checksum-y27jgavel2x32.azurewebsites.net/admin/functions/calculate_checksum_http",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-checksum-y27jgavel2x32/functions/calculate_checksum_http",
+    "invokeUrlTemplate": "https://blache-cdtscr-dev-checksum-y27jgavel2x32.azurewebsites.net/api/calculate_checksum",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-checksum-y27jgavel2x32/calculate_checksum_http",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-checksum-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-checksum-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/calculate_checksum_http.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

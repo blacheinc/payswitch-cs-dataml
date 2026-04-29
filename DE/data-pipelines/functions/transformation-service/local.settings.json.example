@@ -1,0 +1,32 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "ServiceBusConnectionString": "Endpoint=sb://YOUR_NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOUR_POLICY;SharedAccessKey=YOUR_KEY",
+    "ServiceBusConnectionString__fullyQualifiedNamespace": "YOUR_NAMESPACE.servicebus.windows.net",
+    "SERVICE_BUS_CONNECTION_STRING": "",
+    "SERVICE_BUS_FULLY_QUALIFIED_NAMESPACE": "YOUR_NAMESPACE.servicebus.windows.net",
+    "TRANSFORMATION_TRIGGER_TOPIC": "schema-mapping-service",
+    "TRANSFORMATION_TRIGGER_SUBSCRIPTION": "mapping-complete",
+    "TRANSFORM_OUTPUT_SERVICE_BUS_CONNECTION_STRING": "Endpoint=sb://YOUR_NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOUR_POLICY;SharedAccessKey=YOUR_KEY",
+    "TRANSFORM_OUTPUT_SERVICE_BUS_NAMESPACE": "YOUR_NAMESPACE.servicebus.windows.net",
+    "TRANSFORM_OUTPUT_TOPIC": "data-ingested",
+    "TRAINING_DATA_READY_TOPIC": "training-data-ready",
+    "INFERENCE_REQUEST_TOPIC": "inference-request",
+    "SCORING_COMPLETE_TOPIC": "scoring-complete",
+    "INFERENCE_REQUEST_DISABLE_SESSION_ID": "",
+    "INFERENCE_BATCH_MAX_LINES": "100",
+    "GOLD_STORAGE_CONNECTION_STRING": "DefaultEndpointsProtocol=https;AccountName=YOUR_ACCOUNT;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net",
+    "GOLD_STORAGE_ACCOUNT_URL": "https://YOUR_ACCOUNT.blob.core.windows.net",
+    "GOLD_CONTAINER_NAME": "curated",
+    "GOLD_OUTPUT_PREFIX": "gold/training",
+    "SILVER_STORAGE_CONNECTION_STRING": "",
+    "SILVER_STORAGE_ACCOUNT_URL": "",
+    "ML_ENGINEER_HTTP_ENDPOINT": "",
+    "TRANSFORM_DISABLE_BACKEND_EVENT": "",
+    "TRANSFORM_DISABLE_PUBLISH_TRANSFORMED": "",
+    "KEY_VAULT_URL": ""
+  },
+  "ConnectionStrings": {}
+}

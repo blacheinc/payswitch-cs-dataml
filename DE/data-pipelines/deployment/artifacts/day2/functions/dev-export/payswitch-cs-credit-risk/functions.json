@@ -1,0 +1,76 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "credit-risk-sub",
+          "topicName": "credit-risk-predict",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "credit_risk_predict",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "credit_risk_predict",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/functions/credit_risk_predict",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-credit-risk/functions/credit_risk_predict",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-credit-risk/credit_risk_predict",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/vfs/tmp/FunctionsData/credit_risk_predict.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "credit-risk-sub",
+          "topicName": "credit-risk-train",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "credit_risk_train",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "credit_risk_train",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/functions/credit_risk_train",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-credit-risk/functions/credit_risk_train",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-credit-risk/credit_risk_train",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-credit-risk.azurewebsites.net/admin/vfs/tmp/FunctionsData/credit_risk_train.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

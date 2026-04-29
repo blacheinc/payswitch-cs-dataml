@@ -1,0 +1,257 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "6463193272936629128"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    },
+    "functionsSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Functions subnet resource ID (delegated to Microsoft.Web/serverFarms)"
+      }
+    },
+    "privateEndpointsSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Private endpoints subnet resource ID"
+      }
+    },
+    "functionsStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage account name for function runtime"
+      }
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Service Bus namespace name used for identity-based trigger bindings"
+      }
+    },
+    "privateNetworkMode": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable private network posture for function apps"
+      }
+    },
+    "premiumPlanSku": {
+      "type": "string",
+      "defaultValue": "EP1",
+      "metadata": {
+        "description": "Plan SKU for premium functions"
+      }
+    },
+    "planTier": {
+      "type": "string",
+      "defaultValue": "ElasticPremium",
+      "allowedValues": [
+        "ElasticPremium",
+        "PremiumV3"
+      ],
+      "metadata": {
+        "description": "Plan tier for the Functions hosting plan (ElasticPremium or PremiumV3)"
+      }
+    }
+  },
+  "variables": {
+    "planName": "[format('{0}-functions-premium-plan', parameters('namingPrefix'))]",
+    "isElasticPremium": "[equals(parameters('planTier'), 'ElasticPremium')]",
+    "functionApps": [
+      "[format('{0}-schema-mapping-func', parameters('namingPrefix'))]",
+      "[format('{0}-transformation-func', parameters('namingPrefix'))]",
+      "[format('{0}-training-ingestion-func', parameters('namingPrefix'))]",
+      "[format('{0}-adf-trigger-func', parameters('namingPrefix'))]",
+      "[format('{0}-file-checksum-func', parameters('namingPrefix'))]"
+    ]
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('planName')]",
+      "location": "[parameters('location')]",
+      "kind": "linux",
+      "sku": {
+        "name": "[parameters('premiumPlanSku')]",
+        "tier": "[parameters('planTier')]",
+        "size": "[parameters('premiumPlanSku')]",
+        "capacity": 1
+      },
+      "tags": "[parameters('tags')]",
+      "properties": "[union(createObject('reserved', true(), 'perSiteScaling', false()), if(variables('isElasticPremium'), createObject('maximumElasticWorkerCount', 20), createObject()))]"
+    },
+    {
+      "condition": "[parameters('privateNetworkMode')]",
+      "type": "Microsoft.Network/privateDnsZones",
+      "apiVersion": "2020-06-01",
+      "name": "privatelink.azurewebsites.net",
+      "location": "global",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "copy": {
+        "name": "functionAppsResource",
+        "count": "[length(variables('functionApps'))]"
+      },
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2023-12-01",
+      "name": "[variables('functionApps')[copyIndex()]]",
+      "location": "[parameters('location')]",
+      "kind": "functionapp,linux",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]",
+        "httpsOnly": true,
+        "publicNetworkAccess": "[if(parameters('privateNetworkMode'), 'Disabled', 'Enabled')]",
+        "virtualNetworkSubnetId": "[parameters('functionsSubnetId')]",
+        "siteConfig": {
+          "linuxFxVersion": "Python|3.11",
+          "minTlsVersion": "1.2",
+          "ftpsState": "Disabled",
+          "appSettings": [
+            {
+              "name": "FUNCTIONS_WORKER_RUNTIME",
+              "value": "python"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~4"
+            },
+            {
+              "name": "WEBSITE_RUN_FROM_PACKAGE",
+              "value": "1"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[format('DefaultEndpointsProtocol=https;EndpointSuffix={0};AccountName={1};AccountKey={2}', environment().suffixes.storage, parameters('functionsStorageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('functionsStorageAccountName')), '2023-01-01').keys[0].value)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[toLower(replace(variables('functionApps')[copyIndex()], '-', ''))]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[format('DefaultEndpointsProtocol=https;EndpointSuffix={0};AccountName={1};AccountKey={2}', environment().suffixes.storage, parameters('functionsStorageAccountName'), listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('functionsStorageAccountName')), '2023-01-01').keys[0].value)]"
+            },
+            {
+              "name": "ServiceBusConnectionString__fullyQualifiedNamespace",
+              "value": "[if(empty(parameters('serviceBusNamespaceName')), '', format('{0}.servicebus.windows.net', parameters('serviceBusNamespaceName')))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "privateEndpoints",
+        "count": "[length(variables('functionApps'))]"
+      },
+      "condition": "[parameters('privateNetworkMode')]",
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}-pe', variables('functionApps')[copyIndex()])]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "subnet": {
+          "id": "[parameters('privateEndpointsSubnetId')]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "[format('{0}-pls', variables('functionApps')[copyIndex()])]",
+            "properties": {
+              "privateLinkServiceId": "[resourceId('Microsoft.Web/sites', variables('functionApps')[copyIndex()])]",
+              "groupIds": [
+                "sites"
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/sites', variables('functionApps')[copyIndex()])]"
+      ]
+    },
+    {
+      "condition": "[parameters('privateNetworkMode')]",
+      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+      "apiVersion": "2020-06-01",
+      "name": "[format('{0}/{1}', 'privatelink.azurewebsites.net', format('{0}-webapps-link', parameters('namingPrefix')))]",
+      "location": "global",
+      "properties": {
+        "registrationEnabled": false,
+        "virtualNetwork": {
+          "id": "[substring(parameters('functionsSubnetId'), 0, indexOf(parameters('functionsSubnetId'), '/subnets/'))]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+      ]
+    },
+    {
+      "copy": {
+        "name": "websitesDnsZoneGroups",
+        "count": "[length(variables('functionApps'))]"
+      },
+      "condition": "[parameters('privateNetworkMode')]",
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}/{1}', format('{0}-pe', variables('functionApps')[copyIndex()]), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "webapps-zone",
+            "properties": {
+              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('{0}-pe', variables('functionApps')[copyIndex()]))]",
+        "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.azurewebsites.net')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "premiumPlanId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Web/serverfarms', variables('planName'))]"
+    },
+    "functionAppNames": {
+      "type": "array",
+      "value": "[variables('functionApps')]"
+    }
+  }
+}

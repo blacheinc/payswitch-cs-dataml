@@ -1,0 +1,2908 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.42.1.51946",
+      "templateHash": "12166534568614593464"
+    }
+  },
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "defaultValue": "dev",
+      "allowedValues": [
+        "dev",
+        "staging",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment name (dev, staging, prod)"
+      }
+    },
+    "primaryLocation": {
+      "type": "string",
+      "defaultValue": "eastus",
+      "metadata": {
+        "description": "Primary Azure region for deployment"
+      }
+    },
+    "secondaryLocation": {
+      "type": "string",
+      "defaultValue": "westus2",
+      "metadata": {
+        "description": "Secondary Azure region for DR"
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "creditscore",
+      "metadata": {
+        "description": "Project name prefix for resource naming"
+      }
+    },
+    "orgName": {
+      "type": "string",
+      "defaultValue": "payswitch",
+      "metadata": {
+        "description": "Organization/Company name"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "Project": "Credit-Scoring-Agentic-AI",
+        "Environment": "[parameters('environment')]",
+        "ManagedBy": "Bicep",
+        "Owner": "PaySwitch",
+        "CostCenter": "FinTech-Operations"
+      },
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    },
+    "adminEmail": {
+      "type": "string",
+      "metadata": {
+        "description": "Administrator email for alerts and notifications"
+      }
+    },
+    "enableAdvancedSecurity": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Azure Defender and advanced security features"
+      }
+    },
+    "enableMultiRegion": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable multi-region deployment for DR"
+      }
+    },
+    "enableOpenAI": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable Azure OpenAI Service"
+      }
+    },
+    "deployAks": {
+      "type": "bool",
+      "defaultValue": "[not(equals(parameters('environment'), 'prod'))]",
+      "metadata": {
+        "description": "Deploy AKS cluster (omit in prod v1 until Kubernetes workloads are in scope)"
+      }
+    },
+    "deployMlWorkspace": {
+      "type": "bool",
+      "defaultValue": "[not(equals(parameters('environment'), 'prod'))]",
+      "metadata": {
+        "description": "Deploy Azure Machine Learning workspace module (omit in prod v1)"
+      }
+    },
+    "deployJumpBox": {
+      "type": "bool",
+      "defaultValue": "[equals(parameters('environment'), 'prod')]",
+      "metadata": {
+        "description": "Deploy Azure Bastion + a private-subnet Windows jump VM for PE/DNS/RBAC troubleshooting"
+      }
+    },
+    "jumpVmAdminUsername": {
+      "type": "string",
+      "defaultValue": "azureuser",
+      "metadata": {
+        "description": "Admin username for the jump VM Windows OS profile"
+      }
+    },
+    "jumpVmAdminPassword": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Windows jump VM admin password (required when deployJumpBox is true)"
+      }
+    },
+    "jumpVmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s",
+      "metadata": {
+        "description": "VM size for jump host"
+      }
+    }
+  },
+  "variables": {
+    "namingPrefix": "[format('{0}-{1}-{2}', parameters('orgName'), parameters('projectName'), parameters('environment'))]",
+    "resourceGroupNames": {
+      "core": "[format('{0}-core-rg', variables('namingPrefix'))]",
+      "networking": "[format('{0}-network-rg', variables('namingPrefix'))]",
+      "data": "[format('{0}-data-rg', variables('namingPrefix'))]",
+      "compute": "[format('{0}-compute-rg', variables('namingPrefix'))]",
+      "ml": "[format('{0}-ml-rg', variables('namingPrefix'))]",
+      "security": "[format('{0}-security-rg', variables('namingPrefix'))]",
+      "monitoring": "[format('{0}-monitoring-rg', variables('namingPrefix'))]",
+      "agents": "[format('{0}-agents-rg', variables('namingPrefix'))]"
+    },
+    "environmentConfig": {
+      "dev": {
+        "skuTier": "Basic",
+        "replicaCount": 1,
+        "enableHA": false,
+        "backupRetentionDays": 7,
+        "aksNodeCount": 2,
+        "aksVMSize": "Standard_D2s_v3",
+        "postgresSkuName": "Standard_B1ms",
+        "redisCacheSku": "Basic"
+      },
+      "staging": {
+        "skuTier": "Standard",
+        "replicaCount": 2,
+        "enableHA": false,
+        "backupRetentionDays": 14,
+        "aksNodeCount": 3,
+        "aksVMSize": "Standard_D4s_v3",
+        "postgresSkuName": "Standard_D2s_v3",
+        "redisCacheSku": "Standard"
+      },
+      "prod": {
+        "skuTier": "Premium",
+        "replicaCount": 3,
+        "enableHA": true,
+        "backupRetentionDays": 30,
+        "aksNodeCount": 5,
+        "aksVMSize": "Standard_D8s_v3",
+        "postgresSkuName": "Standard_D4s_v3",
+        "redisCacheSku": "Premium"
+      }
+    },
+    "config": "[variables('environmentConfig')[parameters('environment')]]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').core]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').networking]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').data]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').compute]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').ml]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').security]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').monitoring]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupNames').agents]",
+      "location": "[parameters('primaryLocation')]",
+      "tags": "[parameters('tags')]"
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "networking-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').networking]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "vnetAddressPrefix": {
+            "value": "10.0.0.0/16"
+          },
+          "enableDdosProtection": {
+            "value": "[equals(parameters('environment'), 'prod')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "12119241603708479624"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "vnetAddressPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.0.0/16",
+              "metadata": {
+                "description": "VNet address prefix"
+              }
+            },
+            "enableDdosProtection": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable DDoS Protection"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "vnetName": "[format('{0}-vnet', parameters('namingPrefix'))]",
+            "ddosProtectionPlanName": "[format('{0}-ddos-plan', parameters('namingPrefix'))]",
+            "subnets": [
+              {
+                "name": "aks-subnet",
+                "addressPrefix": "10.0.1.0/24",
+                "serviceEndpoints": [
+                  "Microsoft.Storage",
+                  "Microsoft.KeyVault",
+                  "Microsoft.Sql"
+                ]
+              },
+              {
+                "name": "data-subnet",
+                "addressPrefix": "10.0.2.0/24",
+                "serviceEndpoints": [
+                  "Microsoft.Storage",
+                  "Microsoft.KeyVault",
+                  "Microsoft.Sql"
+                ]
+              },
+              {
+                "name": "ml-subnet",
+                "addressPrefix": "10.0.3.0/24",
+                "serviceEndpoints": [
+                  "Microsoft.Storage",
+                  "Microsoft.KeyVault"
+                ]
+              },
+              {
+                "name": "functions-subnet",
+                "addressPrefix": "10.0.4.0/24",
+                "delegation": "Microsoft.Web/serverFarms",
+                "serviceEndpoints": [
+                  "Microsoft.Storage",
+                  "Microsoft.KeyVault"
+                ]
+              },
+              {
+                "name": "apim-subnet",
+                "addressPrefix": "10.0.5.0/24",
+                "serviceEndpoints": [
+                  "Microsoft.Storage",
+                  "Microsoft.KeyVault"
+                ]
+              },
+              {
+                "name": "gateway-subnet",
+                "addressPrefix": "10.0.6.0/24",
+                "serviceEndpoints": []
+              },
+              {
+                "name": "private-endpoints-subnet",
+                "addressPrefix": "10.0.7.0/24",
+                "privateEndpointNetworkPolicies": "Disabled",
+                "serviceEndpoints": []
+              }
+            ]
+          },
+          "resources": [
+            {
+              "condition": "[parameters('enableDdosProtection')]",
+              "type": "Microsoft.Network/ddosProtectionPlans",
+              "apiVersion": "2021-05-01",
+              "name": "[variables('ddosProtectionPlanName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {}
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2021-05-01",
+              "name": "[format('{0}-aks-nsg', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "AllowHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowHTTP",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "80",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowKubernetesAPI",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "6443",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 120,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundToDataSubnet",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllOutbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Outbound"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2021-05-01",
+              "name": "[format('{0}-data-nsg', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "AllowPostgres",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "5432",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowRedis",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "6379",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowMongoDB",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "27017",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 120,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundToVirtualNetwork",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllOutbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Outbound"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2021-05-01",
+              "name": "[format('{0}-ml-nsg', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "AllowAzureMLCompute",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "44224",
+                      "sourceAddressPrefix": "AzureMachineLearning",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundToDataSubnet",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllOutbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Outbound"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2021-05-01",
+              "name": "[format('{0}-functions-nsg', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "AllowHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundToDataSubnet",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 110,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTP",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "80",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 120,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllOutbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Outbound"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups",
+              "apiVersion": "2021-05-01",
+              "name": "[format('{0}-jump-ops-nsg', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "securityRules": [
+                  {
+                    "name": "AllowVNetInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "VirtualNetwork",
+                      "destinationAddressPrefix": "VirtualNetwork",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllInbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Inbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundHTTPS",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "443",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Allow",
+                      "priority": 100,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "DenyAllOutbound",
+                    "properties": {
+                      "protocol": "*",
+                      "sourcePortRange": "*",
+                      "destinationPortRange": "*",
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "*",
+                      "access": "Deny",
+                      "priority": 4096,
+                      "direction": "Outbound"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Network/virtualNetworks",
+              "apiVersion": "2021-05-01",
+              "name": "[variables('vnetName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "addressSpace": {
+                  "addressPrefixes": [
+                    "[parameters('vnetAddressPrefix')]"
+                  ]
+                },
+                "ddosProtectionPlan": "[if(parameters('enableDdosProtection'), createObject('id', resourceId('Microsoft.Network/ddosProtectionPlans', variables('ddosProtectionPlanName'))), null())]",
+                "enableDdosProtection": "[parameters('enableDdosProtection')]",
+                "subnets": [
+                  {
+                    "name": "aks-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.1.0/24",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-aks-nsg', parameters('namingPrefix')))]"
+                      },
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage"
+                        },
+                        {
+                          "service": "Microsoft.KeyVault"
+                        },
+                        {
+                          "service": "Microsoft.Sql"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "data-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.2.0/24",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-data-nsg', parameters('namingPrefix')))]"
+                      },
+                      "delegations": [
+                        {
+                          "name": "postgres-delegation",
+                          "properties": {
+                            "serviceName": "Microsoft.DBforPostgreSQL/flexibleServers"
+                          }
+                        }
+                      ],
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage"
+                        },
+                        {
+                          "service": "Microsoft.KeyVault"
+                        },
+                        {
+                          "service": "Microsoft.Sql"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "ml-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.3.0/24",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-ml-nsg', parameters('namingPrefix')))]"
+                      },
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage"
+                        },
+                        {
+                          "service": "Microsoft.KeyVault"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "functions-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.4.0/24",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-functions-nsg', parameters('namingPrefix')))]"
+                      },
+                      "delegations": [
+                        {
+                          "name": "delegation",
+                          "properties": {
+                            "serviceName": "Microsoft.Web/serverFarms"
+                          }
+                        }
+                      ],
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage"
+                        },
+                        {
+                          "service": "Microsoft.KeyVault"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "apim-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.5.0/24",
+                      "serviceEndpoints": [
+                        {
+                          "service": "Microsoft.Storage"
+                        },
+                        {
+                          "service": "Microsoft.KeyVault"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "name": "gateway-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.6.0/24"
+                    }
+                  },
+                  {
+                    "name": "AzureBastionSubnet",
+                    "properties": {
+                      "addressPrefix": "10.0.8.0/26"
+                    }
+                  },
+                  {
+                    "name": "jump-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.8.64/26",
+                      "networkSecurityGroup": {
+                        "id": "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-jump-ops-nsg', parameters('namingPrefix')))]"
+                      }
+                    }
+                  },
+                  {
+                    "name": "private-endpoints-subnet",
+                    "properties": {
+                      "addressPrefix": "10.0.7.0/24",
+                      "privateEndpointNetworkPolicies": "Disabled"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-aks-nsg', parameters('namingPrefix')))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-data-nsg', parameters('namingPrefix')))]",
+                "[resourceId('Microsoft.Network/ddosProtectionPlans', variables('ddosProtectionPlanName'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-functions-nsg', parameters('namingPrefix')))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-jump-ops-nsg', parameters('namingPrefix')))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', format('{0}-ml-nsg', parameters('namingPrefix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "vnetId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+            },
+            "vnetName": {
+              "type": "string",
+              "value": "[variables('vnetName')]"
+            },
+            "aksSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/aks-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "dataSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/data-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "mlSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/ml-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "functionsSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/functions-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "apimSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/apim-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "bastionSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/AzureBastionSubnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "jumpSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/jump-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            },
+            "privateEndpointsSubnetId": {
+              "type": "string",
+              "value": "[format('{0}/subnets/private-endpoints-subnet', resourceId('Microsoft.Network/virtualNetworks', variables('vnetName')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').networking)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "security-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').security]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "enablePurgeProtection": {
+            "value": "[equals(parameters('environment'), 'prod')]"
+          },
+          "enableAdvancedSecurity": {
+            "value": "[parameters('enableAdvancedSecurity')]"
+          },
+          "adminEmail": {
+            "value": "[parameters('adminEmail')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "3644469483029887110"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "enablePurgeProtection": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable purge protection (required for production)"
+              }
+            },
+            "enableAdvancedSecurity": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable advanced security features"
+              }
+            },
+            "adminEmail": {
+              "type": "string",
+              "metadata": {
+                "description": "Administrator email for security alerts"
+              }
+            },
+            "privateNetworkMode": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable private networking posture (disable public Key Vault access)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "orgName": "[split(parameters('namingPrefix'), '-')[0]]",
+            "uniqueHash": "[substring(uniqueString(resourceGroup().id), 0, 10)]",
+            "keyVaultName": "[format('{0}kv{1}', variables('orgName'), variables('uniqueHash'))]",
+            "managedIdentityName": "[format('{0}-identity', parameters('namingPrefix'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2023-01-31",
+              "name": "[variables('managedIdentityName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-02-01",
+              "name": "[variables('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "[if(parameters('enableAdvancedSecurity'), 'premium', 'standard')]"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "enabledForDeployment": true,
+                "enabledForDiskEncryption": true,
+                "enabledForTemplateDeployment": true,
+                "enablePurgeProtection": "[if(parameters('enablePurgeProtection'), true(), null())]",
+                "enableSoftDelete": true,
+                "softDeleteRetentionInDays": 90,
+                "enableRbacAuthorization": true,
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "Deny",
+                  "ipRules": [],
+                  "virtualNetworkRules": []
+                },
+                "publicNetworkAccess": "[if(parameters('privateNetworkMode'), 'Disabled', 'Enabled')]"
+              }
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', variables('keyVaultName'), 'postgres-admin-password')]",
+              "properties": {
+                "value": "[format('PLACEHOLDER-{0}', uniqueString(resourceGroup().id, 'postgres'))]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', variables('keyVaultName'), 'redis-password')]",
+              "properties": {
+                "value": "[format('PLACEHOLDER-{0}', uniqueString(resourceGroup().id, 'redis'))]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', variables('keyVaultName'), 'mongodb-connection-string')]",
+              "properties": {
+                "value": "[format('PLACEHOLDER-{0}', uniqueString(resourceGroup().id, 'mongo'))]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', variables('keyVaultName'), 'api-secret-key')]",
+              "properties": {
+                "value": "[format('PLACEHOLDER-{0}', uniqueString(resourceGroup().id, 'api'))]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.KeyVault/vaults/secrets",
+              "apiVersion": "2023-02-01",
+              "name": "[format('{0}/{1}', variables('keyVaultName'), 'azure-openai-key')]",
+              "properties": {
+                "value": "[format('PLACEHOLDER-{0}', uniqueString(resourceGroup().id, 'openai'))]",
+                "contentType": "text/plain",
+                "attributes": {
+                  "enabled": true
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/actionGroups",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}-security-alerts', parameters('namingPrefix'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "groupShortName": "SecAlerts",
+                "enabled": true,
+                "emailReceivers": [
+                  {
+                    "name": "SecurityTeam",
+                    "emailAddress": "[parameters('adminEmail')]",
+                    "useCommonAlertSchema": true
+                  }
+                ]
+              }
+            }
+          ],
+          "outputs": {
+            "keyVaultId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName'))]"
+            },
+            "keyVaultName": {
+              "type": "string",
+              "value": "[variables('keyVaultName')]"
+            },
+            "keyVaultUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', variables('keyVaultName')), '2023-02-01').vaultUri]"
+            },
+            "managedIdentityId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName'))]"
+            },
+            "managedIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName')), '2023-01-31').principalId]"
+            },
+            "managedIdentityClientId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('managedIdentityName')), '2023-01-31').clientId]"
+            },
+            "securityActionGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/actionGroups', format('{0}-security-alerts', parameters('namingPrefix')))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').security)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "monitoring-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').monitoring]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "adminEmail": {
+            "value": "[parameters('adminEmail')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "7837744395160327411"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "adminEmail": {
+              "type": "string",
+              "metadata": {
+                "description": "Administrator email for alerts"
+              }
+            },
+            "enableMetricAlerts": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable metric alerts (set to false if alerts fail to deploy)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "logAnalyticsName": "[format('{0}-law', parameters('namingPrefix'))]",
+            "appInsightsName": "[format('{0}-appinsights', parameters('namingPrefix'))]",
+            "actionGroupName": "[format('{0}-actiongroup', parameters('namingPrefix'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[variables('logAnalyticsName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 90,
+                "features": {
+                  "enableLogAccessUsingOnlyResourcePermissions": true
+                },
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              }
+            },
+            {
+              "type": "Microsoft.Insights/components",
+              "apiVersion": "2020-02-02",
+              "name": "[variables('appInsightsName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "web",
+              "properties": {
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]",
+                "IngestionMode": "LogAnalytics",
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Enabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/actionGroups",
+              "apiVersion": "2023-01-01",
+              "name": "[variables('actionGroupName')]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "groupShortName": "CSAlerts",
+                "enabled": true,
+                "emailReceivers": [
+                  {
+                    "name": "AdminEmail",
+                    "emailAddress": "[parameters('adminEmail')]",
+                    "useCommonAlertSchema": true
+                  }
+                ]
+              }
+            },
+            {
+              "condition": "[parameters('enableMetricAlerts')]",
+              "type": "Microsoft.Insights/metricAlerts",
+              "apiVersion": "2018-03-01",
+              "name": "[format('{0}-high-cpu-alert', parameters('namingPrefix'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "description": "Alert when CPU usage exceeds 80%",
+                "severity": 2,
+                "enabled": true,
+                "scopes": [
+                  "[resourceGroup().id]"
+                ],
+                "targetResourceType": "Microsoft.Compute/virtualMachines",
+                "targetResourceRegion": "[parameters('location')]",
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT5M",
+                "criteria": {
+                  "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+                  "allOf": [
+                    {
+                      "name": "HighCPU",
+                      "criterionType": "StaticThresholdCriterion",
+                      "metricName": "Percentage CPU",
+                      "metricNamespace": "Microsoft.Compute/virtualMachines",
+                      "operator": "GreaterThan",
+                      "threshold": 80,
+                      "timeAggregation": "Average"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('enableMetricAlerts')]",
+              "type": "Microsoft.Insights/metricAlerts",
+              "apiVersion": "2018-03-01",
+              "name": "[format('{0}-high-memory-alert', parameters('namingPrefix'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "description": "Alert when memory usage exceeds 85%",
+                "severity": 2,
+                "enabled": true,
+                "scopes": [
+                  "[resourceGroup().id]"
+                ],
+                "targetResourceType": "Microsoft.Compute/virtualMachines",
+                "targetResourceRegion": "[parameters('location')]",
+                "evaluationFrequency": "PT5M",
+                "windowSize": "PT5M",
+                "criteria": {
+                  "odata.type": "Microsoft.Azure.Monitor.MultipleResourceMultipleMetricCriteria",
+                  "allOf": [
+                    {
+                      "name": "HighMemory",
+                      "criterionType": "StaticThresholdCriterion",
+                      "metricName": "Available Memory Bytes",
+                      "metricNamespace": "Microsoft.Compute/virtualMachines",
+                      "operator": "LessThan",
+                      "threshold": 1073741824,
+                      "timeAggregation": "Average"
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "actionGroupId": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[format('ContainerInsights({0})', variables('logAnalyticsName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "plan": {
+                "name": "[format('ContainerInsights({0})', variables('logAnalyticsName'))]",
+                "product": "OMSGallery/ContainerInsights",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+              },
+              "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.OperationsManagement/solutions",
+              "apiVersion": "2015-11-01-preview",
+              "name": "[format('SecurityInsights({0})', variables('logAnalyticsName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "plan": {
+                "name": "[format('SecurityInsights({0})', variables('logAnalyticsName'))]",
+                "product": "OMSGallery/SecurityInsights",
+                "promotionCode": "",
+                "publisher": "Microsoft"
+              },
+              "properties": {
+                "workspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Insights/workbooks",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(format('{0}-workbook', parameters('namingPrefix')))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "shared",
+              "properties": {
+                "displayName": "Credit Scoring Dashboard",
+                "category": "workbook",
+                "serializedData": "    {\n      \"version\": \"Notebook/1.0\",\n      \"items\": [\n        {\n          \"type\": 1,\n          \"content\": {\n            \"json\": \"## Credit Scoring Platform - Monitoring Dashboard\\\\n\\\\nComprehensive monitoring for credit scoring and agentic AI components\"\n          }\n        },\n        {\n          \"type\": 3,\n          \"content\": {\n            \"version\": \"KqlItem/1.0\",\n            \"query\": \"requests\\\\n| summarize count() by bin(timestamp, 5m)\\\\n| render timechart\",\n            \"size\": 0,\n            \"title\": \"API Request Rate\"\n          }\n        }\n      ]\n    }\n    ",
+                "sourceId": "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "logAnalyticsId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName'))]"
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', variables('logAnalyticsName')), '2022-10-01').customerId]"
+            },
+            "applicationInsightsId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/components', variables('appInsightsName'))]"
+            },
+            "applicationInsightsKey": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').InstrumentationKey]"
+            },
+            "applicationInsightsConnectionString": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Insights/components', variables('appInsightsName')), '2020-02-02').ConnectionString]"
+            },
+            "actionGroupId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Insights/actionGroups', variables('actionGroupName'))]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').monitoring)]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "data-layer-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').data]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "postgresSkuName": {
+            "value": "[variables('config').postgresSkuName]"
+          },
+          "redisCacheSku": {
+            "value": "[variables('config').redisCacheSku]"
+          },
+          "backupRetentionDays": {
+            "value": "[variables('config').backupRetentionDays]"
+          },
+          "enableHA": {
+            "value": "[variables('config').enableHA]"
+          },
+          "keyVaultName": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').security), 'Microsoft.Resources/deployments', 'security-deployment'), '2025-04-01').outputs.keyVaultName.value]"
+          },
+          "subnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.dataSubnetId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "15262012129001136635"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "postgresSkuName": {
+              "type": "string",
+              "defaultValue": "Standard_B1ms",
+              "metadata": {
+                "description": "PostgreSQL SKU name (e.g., Standard_B1ms for Burstable, Standard_D2s_v3 for GeneralPurpose)"
+              }
+            },
+            "redisCacheSku": {
+              "type": "string",
+              "defaultValue": "Standard",
+              "metadata": {
+                "description": "Redis Cache SKU"
+              }
+            },
+            "backupRetentionDays": {
+              "type": "int",
+              "defaultValue": 30,
+              "metadata": {
+                "description": "Backup retention days"
+              }
+            },
+            "enableHA": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable High Availability"
+              }
+            },
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault name for secret storage (currently unused but reserved for future use)"
+              }
+            },
+            "subnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Data subnet ID for private endpoints"
+              }
+            },
+            "vnetId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Virtual Network ID for Private DNS Zone linking (optional for dev, required for prod)"
+              }
+            },
+            "mlSubnetId": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "ML subnet ID (optional) to allow Azure ML compute access to storage/Data Lake"
+              }
+            },
+            "environment": {
+              "type": "string",
+              "defaultValue": "dev",
+              "allowedValues": [
+                "dev",
+                "production"
+              ],
+              "metadata": {
+                "description": "Environment (dev or production) - controls publicNetworkAccess"
+              }
+            },
+            "privateNetworkMode": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable private networking posture regardless of environment"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "postgresServerName": "[format('{0}-postgres-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+            "redisName": "[format('{0}-redis-{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id))]",
+            "shortPrefix": "[substring(split(parameters('namingPrefix'), '-')[0], 0, min(8, length(split(parameters('namingPrefix'), '-')[0])))]",
+            "storageAccountName": "[format('{0}st{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id), 0, 13))]",
+            "dataLakeName": "[format('{0}dl{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id), 0, 13))]",
+            "postgresAdminUser": "csadmin",
+            "postgresAdminPassword": "[format('{0}!Aa1', uniqueString(resourceGroup().id, 'postgres'))]",
+            "isProduction": "[or(equals(parameters('environment'), 'production'), parameters('privateNetworkMode'))]",
+            "postgresPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
+            "redisPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
+            "storageDefaultAction": "[if(variables('isProduction'), 'Deny', 'Allow')]",
+            "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[variables('storageAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "accessTier": "Hot",
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "[variables('storageDefaultAction')]",
+                  "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+                },
+                "encryption": {
+                  "services": {
+                    "blob": {
+                      "enabled": true
+                    },
+                    "file": {
+                      "enabled": true
+                    }
+                  },
+                  "keySource": "Microsoft.Storage"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+              "properties": {
+                "deleteRetentionPolicy": {
+                  "enabled": true,
+                  "days": 7
+                },
+                "containerDeleteRetentionPolicy": {
+                  "enabled": true,
+                  "days": 7
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'models')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'artifacts')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'data')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[variables('dataLakeName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "isHnsEnabled": true,
+                "accessTier": "Hot",
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "[variables('storageDefaultAction')]",
+                  "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+                },
+                "encryption": {
+                  "services": {
+                    "blob": {
+                      "enabled": true
+                    },
+                    "file": {
+                      "enabled": true
+                    }
+                  },
+                  "keySource": "Microsoft.Storage"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}', variables('dataLakeName'), 'default')]",
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('dataLakeName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'raw')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'processed')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2023-01-01",
+              "name": "[format('{0}/{1}/{2}', variables('dataLakeName'), 'default', 'curated')]",
+              "properties": {
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('dataLakeName'), 'default')]"
+              ]
+            },
+            {
+              "condition": "[and(not(empty(parameters('vnetId'))), variables('isProduction'))]",
+              "type": "Microsoft.Network/privateDnsZones",
+              "apiVersion": "2020-06-01",
+              "name": "privatelink.postgres.database.azure.com",
+              "location": "global",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "condition": "[and(not(empty(parameters('vnetId'))), variables('isProduction'))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', 'privatelink.postgres.database.azure.com', format('{0}-postgres-dns-link', parameters('namingPrefix')))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('vnetId')]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+              "apiVersion": "2022-12-01",
+              "name": "[variables('postgresServerName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('postgresSkuName')]",
+                "tier": "[if(contains(parameters('postgresSkuName'), 'Standard_B'), 'Burstable', 'GeneralPurpose')]"
+              },
+              "properties": {
+                "administratorLogin": "[variables('postgresAdminUser')]",
+                "administratorLoginPassword": "[variables('postgresAdminPassword')]",
+                "version": "14",
+                "storage": {
+                  "storageSizeGB": 128
+                },
+                "backup": {
+                  "backupRetentionDays": "[parameters('backupRetentionDays')]",
+                  "geoRedundantBackup": "[if(parameters('enableHA'), 'Enabled', 'Disabled')]"
+                },
+                "highAvailability": "[if(parameters('enableHA'), createObject('mode', 'ZoneRedundant'), createObject('mode', 'Disabled'))]",
+                "network": "[if(and(and(variables('isProduction'), not(empty(parameters('vnetId')))), not(empty(parameters('subnetId')))), createObject('publicNetworkAccess', variables('postgresPublicNetworkAccess'), 'delegatedSubnetResourceId', parameters('subnetId'), 'privateDnsZoneArmResourceId', resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')), createObject('publicNetworkAccess', variables('postgresPublicNetworkAccess')))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.postgres.database.azure.com')]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2022-12-01",
+              "name": "[format('{0}/{1}', variables('postgresServerName'), 'credit_scoring')]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2022-12-01",
+              "name": "[format('{0}/{1}', variables('postgresServerName'), 'metadata')]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/databases",
+              "apiVersion": "2022-12-01",
+              "name": "[format('{0}/{1}', variables('postgresServerName'), 'mlflow')]",
+              "properties": {
+                "charset": "UTF8",
+                "collation": "en_US.utf8"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+              ]
+            },
+            {
+              "condition": "[not(parameters('privateNetworkMode'))]",
+              "type": "Microsoft.DBforPostgreSQL/flexibleServers/firewallRules",
+              "apiVersion": "2022-12-01",
+              "name": "[format('{0}/{1}', variables('postgresServerName'), 'AllowAzureServices')]",
+              "properties": {
+                "startIpAddress": "0.0.0.0",
+                "endIpAddress": "0.0.0.0"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Cache/redis",
+              "apiVersion": "2023-08-01",
+              "name": "[variables('redisName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "[parameters('redisCacheSku')]",
+                  "family": "[if(equals(parameters('redisCacheSku'), 'Premium'), 'P', 'C')]",
+                  "capacity": "[if(equals(parameters('redisCacheSku'), 'Premium'), 1, 1)]"
+                },
+                "enableNonSslPort": false,
+                "minimumTlsVersion": "1.2",
+                "publicNetworkAccess": "[variables('redisPublicNetworkAccess')]",
+                "redisConfiguration": {
+                  "maxmemory-policy": "allkeys-lru"
+                },
+                "redisVersion": "6"
+              }
+            }
+          ],
+          "outputs": {
+            "storageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+            },
+            "storageAccountName": {
+              "type": "string",
+              "value": "[variables('storageAccountName')]"
+            },
+            "dataLakeId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('dataLakeName'))]"
+            },
+            "dataLakeName": {
+              "type": "string",
+              "value": "[variables('dataLakeName')]"
+            },
+            "postgresServerId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName'))]"
+            },
+            "postgresServerName": {
+              "type": "string",
+              "value": "[variables('postgresServerName')]"
+            },
+            "postgresServerFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', variables('postgresServerName')), '2022-12-01').fullyQualifiedDomainName]"
+            },
+            "postgresAdminUser": {
+              "type": "string",
+              "value": "[variables('postgresAdminUser')]"
+            },
+            "redisId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Cache/redis', variables('redisName'))]"
+            },
+            "redisName": {
+              "type": "string",
+              "value": "[variables('redisName')]"
+            },
+            "redisHostName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Cache/redis', variables('redisName')), '2023-08-01').hostName]"
+            },
+            "redisSslPort": {
+              "type": "int",
+              "value": "[reference(resourceId('Microsoft.Cache/redis', variables('redisName')), '2023-08-01').sslPort]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').data)]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').security), 'Microsoft.Resources/deployments', 'security-deployment')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployAks')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "compute-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').compute]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "nodeCount": {
+            "value": "[variables('config').aksNodeCount]"
+          },
+          "vmSize": {
+            "value": "[variables('config').aksVMSize]"
+          },
+          "enableAutoScaling": {
+            "value": true
+          },
+          "minNodeCount": {
+            "value": "[variables('config').aksNodeCount]"
+          },
+          "maxNodeCount": {
+            "value": "[mul(variables('config').aksNodeCount, 2)]"
+          },
+          "vnetSubnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.aksSubnetId.value]"
+          },
+          "logAnalyticsWorkspaceId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').monitoring), 'Microsoft.Resources/deployments', 'monitoring-deployment'), '2025-04-01').outputs.logAnalyticsId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "11988232667279252543"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "nodeCount": {
+              "type": "int",
+              "defaultValue": 3,
+              "metadata": {
+                "description": "Initial node count"
+              }
+            },
+            "vmSize": {
+              "type": "string",
+              "defaultValue": "Standard_D4s_v3",
+              "metadata": {
+                "description": "VM size for nodes"
+              }
+            },
+            "enableAutoScaling": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Enable autoscaling"
+              }
+            },
+            "minNodeCount": {
+              "type": "int",
+              "defaultValue": 3,
+              "metadata": {
+                "description": "Minimum node count for autoscaling"
+              }
+            },
+            "maxNodeCount": {
+              "type": "int",
+              "defaultValue": 10,
+              "metadata": {
+                "description": "Maximum node count for autoscaling"
+              }
+            },
+            "vnetSubnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "VNet subnet ID for AKS"
+              }
+            },
+            "kubernetesVersion": {
+              "type": "string",
+              "defaultValue": "1.27.10",
+              "metadata": {
+                "description": "Kubernetes version (e.g., 1.27.10). If not specified, deployment script will query for latest supported non-LTS version."
+              }
+            },
+            "logAnalyticsWorkspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics Workspace resource ID (required for omsagent addon)"
+              }
+            },
+            "availabilityZones": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Availability zones for node pools (empty array if region does not support zones, e.g., eastus2)"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "aksClusterName": "[format('{0}-aks', parameters('namingPrefix'))]",
+            "nodePoolName": "nodepool1",
+            "dnsPrefix": "[format('{0}-aks-dns', parameters('namingPrefix'))]",
+            "useAvailabilityZones": "[greater(length(parameters('availabilityZones')), 0)]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ContainerService/managedClusters",
+              "apiVersion": "2023-10-01",
+              "name": "[variables('aksClusterName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "properties": {
+                "dnsPrefix": "[variables('dnsPrefix')]",
+                "kubernetesVersion": "[parameters('kubernetesVersion')]",
+                "enableRBAC": true,
+                "networkProfile": {
+                  "networkPlugin": "azure",
+                  "networkPolicy": "azure",
+                  "serviceCidr": "172.16.0.0/16",
+                  "dnsServiceIP": "172.16.0.10",
+                  "loadBalancerSku": "standard"
+                },
+                "agentPoolProfiles": [
+                  {
+                    "name": "[variables('nodePoolName')]",
+                    "count": "[parameters('nodeCount')]",
+                    "vmSize": "[parameters('vmSize')]",
+                    "osDiskSizeGB": 128,
+                    "osDiskType": "Managed",
+                    "osType": "Linux",
+                    "mode": "System",
+                    "type": "VirtualMachineScaleSets",
+                    "vnetSubnetID": "[parameters('vnetSubnetId')]",
+                    "enableAutoScaling": "[parameters('enableAutoScaling')]",
+                    "minCount": "[if(parameters('enableAutoScaling'), parameters('minNodeCount'), null())]",
+                    "maxCount": "[if(parameters('enableAutoScaling'), parameters('maxNodeCount'), null())]",
+                    "availabilityZones": "[if(variables('useAvailabilityZones'), parameters('availabilityZones'), createArray())]",
+                    "enableNodePublicIP": false
+                  }
+                ],
+                "addonProfiles": {
+                  "azureKeyvaultSecretsProvider": {
+                    "enabled": true,
+                    "config": {
+                      "enableSecretRotation": "true",
+                      "rotationPollInterval": "2m"
+                    }
+                  },
+                  "azurepolicy": {
+                    "enabled": true
+                  },
+                  "omsagent": {
+                    "enabled": true,
+                    "config": {
+                      "logAnalyticsWorkspaceResourceID": "[parameters('logAnalyticsWorkspaceId')]"
+                    }
+                  }
+                },
+                "oidcIssuerProfile": {
+                  "enabled": true
+                },
+                "securityProfile": {
+                  "workloadIdentity": {
+                    "enabled": true
+                  }
+                },
+                "apiServerAccessProfile": {
+                  "enablePrivateCluster": false
+                }
+              }
+            },
+            {
+              "type": "Microsoft.ContainerService/managedClusters/agentPools",
+              "apiVersion": "2023-10-01",
+              "name": "[format('{0}/{1}', variables('aksClusterName'), 'gpupool')]",
+              "properties": {
+                "count": 0,
+                "vmSize": "Standard_NC6s_v3",
+                "osDiskSizeGB": 128,
+                "osDiskType": "Managed",
+                "osType": "Linux",
+                "mode": "User",
+                "type": "VirtualMachineScaleSets",
+                "vnetSubnetID": "[parameters('vnetSubnetId')]",
+                "enableAutoScaling": true,
+                "minCount": 0,
+                "maxCount": 3,
+                "availabilityZones": "[if(variables('useAvailabilityZones'), parameters('availabilityZones'), createArray())]",
+                "enableNodePublicIP": false,
+                "nodeTaints": [
+                  "sku=gpu:NoSchedule"
+                ],
+                "nodeLabels": {
+                  "workload": "gpu"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2023-07-01",
+              "name": "[replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Premium"
+              },
+              "properties": {
+                "adminUserEnabled": false,
+                "publicNetworkAccess": "Enabled",
+                "networkRuleBypassOptions": "AzureServices",
+                "zoneRedundancy": "Enabled"
+              }
+            }
+          ],
+          "outputs": {
+            "aksClusterId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
+            },
+            "aksClusterName": {
+              "type": "string",
+              "value": "[variables('aksClusterName')]"
+            },
+            "aksClusterFqdn": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01').fqdn]"
+            },
+            "aksIdentityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01', 'full').identity.principalId]"
+            },
+            "aksKubeletIdentityObjectId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01').identityProfile.kubeletidentity.objectId]"
+            },
+            "containerRegistryId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', ''))]"
+            },
+            "containerRegistryName": {
+              "type": "string",
+              "value": "[replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')]"
+            },
+            "containerRegistryLoginServer": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')), '2023-07-01').loginServer]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').compute)]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').monitoring), 'Microsoft.Resources/deployments', 'monitoring-deployment')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment')]"
+      ]
+    },
+    {
+      "condition": "[parameters('deployMlWorkspace')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "ml-workspace-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').ml]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "keyVaultId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').security), 'Microsoft.Resources/deployments', 'security-deployment'), '2025-04-01').outputs.keyVaultId.value]"
+          },
+          "storageAccountId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.storageAccountId.value]"
+          },
+          "applicationInsightsId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').monitoring), 'Microsoft.Resources/deployments', 'monitoring-deployment'), '2025-04-01').outputs.applicationInsightsId.value]"
+          },
+          "subnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.mlSubnetId.value]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "13146471619591295591"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "keyVaultId": {
+              "type": "string",
+              "metadata": {
+                "description": "Key Vault resource ID"
+              }
+            },
+            "storageAccountId": {
+              "type": "string",
+              "metadata": {
+                "description": "Storage Account resource ID"
+              }
+            },
+            "applicationInsightsId": {
+              "type": "string",
+              "metadata": {
+                "description": "Application Insights resource ID"
+              }
+            },
+            "subnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Subnet resource ID for AML compute (must be in same VNet as the Storage Account when storage has VNet restrictions)"
+              }
+            },
+            "enableGpuCluster": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Enable GPU compute cluster for deep learning workloads (may require additional vCPU quota)"
+              }
+            },
+            "workspaceSkuName": {
+              "type": "string",
+              "defaultValue": "Basic",
+              "allowedValues": [
+                "Basic",
+                "Standard",
+                "Premium"
+              ],
+              "metadata": {
+                "description": "Workspace SKU name"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            }
+          },
+          "variables": {
+            "workspaceName": "[format('{0}-mlw', parameters('namingPrefix'))]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces",
+              "apiVersion": "2023-10-01",
+              "name": "[variables('workspaceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "identity": {
+                "type": "SystemAssigned"
+              },
+              "sku": {
+                "name": "[parameters('workspaceSkuName')]",
+                "tier": "[parameters('workspaceSkuName')]"
+              },
+              "properties": {
+                "friendlyName": "Credit Scoring ML Workspace",
+                "description": "Machine Learning workspace for credit scoring models and agentic AI",
+                "keyVault": "[parameters('keyVaultId')]",
+                "storageAccount": "[parameters('storageAccountId')]",
+                "applicationInsights": "[parameters('applicationInsightsId')]",
+                "publicNetworkAccess": "Enabled",
+                "hbiWorkspace": true,
+                "v1LegacyMode": false
+              }
+            },
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces/computes",
+              "apiVersion": "2023-10-01",
+              "name": "[format('{0}/{1}', variables('workspaceName'), 'cpu-cluster')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "computeType": "AmlCompute",
+                "properties": {
+                  "vmSize": "Standard_D4s_v3",
+                  "vmPriority": "Dedicated",
+                  "scaleSettings": {
+                    "minNodeCount": 0,
+                    "maxNodeCount": 4,
+                    "nodeIdleTimeBeforeScaleDown": "PT5M"
+                  },
+                  "remoteLoginPortPublicAccess": "Disabled",
+                  "subnet": {
+                    "id": "[parameters('subnetId')]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('enableGpuCluster')]",
+              "type": "Microsoft.MachineLearningServices/workspaces/computes",
+              "apiVersion": "2023-10-01",
+              "name": "[format('{0}/{1}', variables('workspaceName'), 'gpu-cluster')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "computeType": "AmlCompute",
+                "properties": {
+                  "vmSize": "Standard_NC6s_v3",
+                  "vmPriority": "LowPriority",
+                  "scaleSettings": {
+                    "minNodeCount": 0,
+                    "maxNodeCount": 2,
+                    "nodeIdleTimeBeforeScaleDown": "PT5M"
+                  },
+                  "remoteLoginPortPublicAccess": "Disabled",
+                  "subnet": {
+                    "id": "[parameters('subnetId')]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces/computes",
+              "apiVersion": "2023-10-01",
+              "name": "[format('{0}/{1}', variables('workspaceName'), 'dev-compute-instance')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "computeType": "ComputeInstance",
+                "properties": {
+                  "vmSize": "Standard_D4s_v3",
+                  "applicationSharingPolicy": "Personal",
+                  "sshSettings": {
+                    "sshPublicAccess": "Disabled"
+                  },
+                  "computeInstanceAuthorizationType": "personal",
+                  "subnet": {
+                    "id": "[parameters('subnetId')]"
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "value": "[variables('workspaceName')]"
+            },
+            "workspacePrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName')), '2023-10-01', 'full').identity.principalId]"
+            },
+            "discoveryUrl": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName')), '2023-10-01').discoveryUrl]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').ml)]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').monitoring), 'Microsoft.Resources/deployments', 'monitoring-deployment')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment')]",
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').security), 'Microsoft.Resources/deployments', 'security-deployment')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "bastion-jump-deployment",
+      "resourceGroup": "[variables('resourceGroupNames').networking]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('primaryLocation')]"
+          },
+          "namingPrefix": {
+            "value": "[variables('namingPrefix')]"
+          },
+          "bastionSubnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.bastionSubnetId.value]"
+          },
+          "jumpSubnetId": {
+            "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.jumpSubnetId.value]"
+          },
+          "jumpVmAdminUsername": {
+            "value": "[parameters('jumpVmAdminUsername')]"
+          },
+          "jumpVmAdminPassword": {
+            "value": "[parameters('jumpVmAdminPassword')]"
+          },
+          "jumpVmSize": {
+            "value": "[parameters('jumpVmSize')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "deploy": {
+            "value": "[parameters('deployJumpBox')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.42.1.51946",
+              "templateHash": "1627296360377636071"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region for deployment"
+              }
+            },
+            "namingPrefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Naming prefix for resources"
+              }
+            },
+            "bastionSubnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Subnet ID for AzureBastionSubnet"
+              }
+            },
+            "jumpSubnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Subnet ID for the jump VM NIC"
+              }
+            },
+            "jumpVmAdminUsername": {
+              "type": "string",
+              "metadata": {
+                "description": "Windows admin username"
+              }
+            },
+            "jumpVmAdminPassword": {
+              "type": "securestring",
+              "metadata": {
+                "description": "Windows admin password for jump VM"
+              }
+            },
+            "jumpVmSize": {
+              "type": "string",
+              "metadata": {
+                "description": "Jump VM size"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Resource tags"
+              }
+            },
+            "deploy": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "When false, no Bastion/jump resources are created (outputs remain empty strings)."
+              }
+            }
+          },
+          "resources": [
+            {
+              "condition": "[parameters('deploy')]",
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-bastion-pip', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard",
+                "tier": "Regional"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              }
+            },
+            {
+              "condition": "[parameters('deploy')]",
+              "type": "Microsoft.Network/bastionHosts",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-bastion', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "bastion-ip-config",
+                    "properties": {
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-bastion-pip', parameters('namingPrefix')))]"
+                      },
+                      "subnet": {
+                        "id": "[parameters('bastionSubnetId')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-bastion-pip', parameters('namingPrefix')))]"
+              ]
+            },
+            {
+              "condition": "[parameters('deploy')]",
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-jump-nic', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('jumpSubnetId')]"
+                      },
+                      "privateIPAllocationMethod": "Dynamic"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "condition": "[parameters('deploy')]",
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2024-07-01",
+              "name": "[format('{0}-jump-vm', parameters('namingPrefix'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('jumpVmSize')]"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "MicrosoftWindowsServer",
+                    "offer": "WindowsServer",
+                    "sku": "2022-datacenter-azure-edition",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "name": "[format('{0}-jump-os', parameters('namingPrefix'))]",
+                    "caching": "ReadWrite",
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                      "storageAccountType": "StandardSSD_LRS"
+                    }
+                  }
+                },
+                "osProfile": {
+                  "computerName": "jumpvmwin",
+                  "adminUsername": "[parameters('jumpVmAdminUsername')]",
+                  "adminPassword": "[parameters('jumpVmAdminPassword')]",
+                  "windowsConfiguration": {
+                    "provisionVMAgent": true,
+                    "enableAutomaticUpdates": true
+                  }
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-jump-nic', parameters('namingPrefix')))]",
+                      "properties": {
+                        "primary": true
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-jump-nic', parameters('namingPrefix')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "bastionHostName": {
+              "type": "string",
+              "value": "[if(parameters('deploy'), format('{0}-bastion', parameters('namingPrefix')), '')]"
+            },
+            "jumpVmName": {
+              "type": "string",
+              "value": "[if(parameters('deploy'), format('{0}-jump-vm', parameters('namingPrefix')), '')]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment')]",
+        "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupNames').networking)]"
+      ]
+    }
+  ],
+  "outputs": {
+    "resourceGroupNames": {
+      "type": "object",
+      "value": "[variables('resourceGroupNames')]"
+    },
+    "namingPrefix": {
+      "type": "string",
+      "value": "[variables('namingPrefix')]"
+    },
+    "vnetId": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.vnetId.value]"
+    },
+    "aksClusterName": {
+      "type": "string",
+      "value": "[if(parameters('deployAks'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').compute), 'Microsoft.Resources/deployments', 'compute-deployment'), '2025-04-01').outputs.aksClusterName.value, '')]"
+    },
+    "keyVaultName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').security), 'Microsoft.Resources/deployments', 'security-deployment'), '2025-04-01').outputs.keyVaultName.value]"
+    },
+    "mlWorkspaceName": {
+      "type": "string",
+      "value": "[if(parameters('deployMlWorkspace'), reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').ml), 'Microsoft.Resources/deployments', 'ml-workspace-deployment'), '2025-04-01').outputs.workspaceName.value, '')]"
+    },
+    "storageAccountName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.storageAccountName.value]"
+    },
+    "blobStorageAccountName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.storageAccountName.value]"
+    },
+    "dataLakeStorageAccountName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.dataLakeName.value]"
+    },
+    "postgresServerName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.postgresServerName.value]"
+    },
+    "postgresServerFqdn": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.postgresServerFqdn.value]"
+    },
+    "redisName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.redisName.value]"
+    },
+    "bastionName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'bastion-jump-deployment'), '2025-04-01').outputs.bastionHostName.value]"
+    },
+    "jumpVmName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'bastion-jump-deployment'), '2025-04-01').outputs.jumpVmName.value]"
+    }
+  }
+}

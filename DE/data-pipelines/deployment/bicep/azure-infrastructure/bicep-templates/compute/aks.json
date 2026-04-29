@@ -1,0 +1,248 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "102463159446035705"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "nodeCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Initial node count"
+      }
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D4s_v3",
+      "metadata": {
+        "description": "VM size for nodes"
+      }
+    },
+    "enableAutoScaling": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Enable autoscaling"
+      }
+    },
+    "minNodeCount": {
+      "type": "int",
+      "defaultValue": 3,
+      "metadata": {
+        "description": "Minimum node count for autoscaling"
+      }
+    },
+    "maxNodeCount": {
+      "type": "int",
+      "defaultValue": 10,
+      "metadata": {
+        "description": "Maximum node count for autoscaling"
+      }
+    },
+    "vnetSubnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "VNet subnet ID for AKS"
+      }
+    },
+    "kubernetesVersion": {
+      "type": "string",
+      "defaultValue": "1.27.10",
+      "metadata": {
+        "description": "Kubernetes version (e.g., 1.27.10). If not specified, deployment script will query for latest supported non-LTS version."
+      }
+    },
+    "logAnalyticsWorkspaceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics Workspace resource ID (required for omsagent addon)"
+      }
+    },
+    "availabilityZones": {
+      "type": "array",
+      "defaultValue": [],
+      "metadata": {
+        "description": "Availability zones for node pools (empty array if region does not support zones, e.g., eastus2)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    }
+  },
+  "variables": {
+    "aksClusterName": "[format('{0}-aks', parameters('namingPrefix'))]",
+    "nodePoolName": "nodepool1",
+    "dnsPrefix": "[format('{0}-aks-dns', parameters('namingPrefix'))]",
+    "useAvailabilityZones": "[greater(length(parameters('availabilityZones')), 0)]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerService/managedClusters",
+      "apiVersion": "2023-10-01",
+      "name": "[variables('aksClusterName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "dnsPrefix": "[variables('dnsPrefix')]",
+        "kubernetesVersion": "[parameters('kubernetesVersion')]",
+        "enableRBAC": true,
+        "networkProfile": {
+          "networkPlugin": "azure",
+          "networkPolicy": "azure",
+          "serviceCidr": "172.16.0.0/16",
+          "dnsServiceIP": "172.16.0.10",
+          "loadBalancerSku": "standard"
+        },
+        "agentPoolProfiles": [
+          {
+            "name": "[variables('nodePoolName')]",
+            "count": "[parameters('nodeCount')]",
+            "vmSize": "[parameters('vmSize')]",
+            "osDiskSizeGB": 128,
+            "osDiskType": "Managed",
+            "osType": "Linux",
+            "mode": "System",
+            "type": "VirtualMachineScaleSets",
+            "vnetSubnetID": "[parameters('vnetSubnetId')]",
+            "enableAutoScaling": "[parameters('enableAutoScaling')]",
+            "minCount": "[if(parameters('enableAutoScaling'), parameters('minNodeCount'), null())]",
+            "maxCount": "[if(parameters('enableAutoScaling'), parameters('maxNodeCount'), null())]",
+            "availabilityZones": "[if(variables('useAvailabilityZones'), parameters('availabilityZones'), createArray())]",
+            "enableNodePublicIP": false
+          }
+        ],
+        "addonProfiles": {
+          "azureKeyvaultSecretsProvider": {
+            "enabled": true,
+            "config": {
+              "enableSecretRotation": "true",
+              "rotationPollInterval": "2m"
+            }
+          },
+          "azurepolicy": {
+            "enabled": true
+          },
+          "omsagent": {
+            "enabled": true,
+            "config": {
+              "logAnalyticsWorkspaceResourceID": "[parameters('logAnalyticsWorkspaceId')]"
+            }
+          }
+        },
+        "oidcIssuerProfile": {
+          "enabled": true
+        },
+        "securityProfile": {
+          "workloadIdentity": {
+            "enabled": true
+          }
+        },
+        "apiServerAccessProfile": {
+          "enablePrivateCluster": false
+        }
+      }
+    },
+    {
+      "type": "Microsoft.ContainerService/managedClusters/agentPools",
+      "apiVersion": "2023-10-01",
+      "name": "[format('{0}/{1}', variables('aksClusterName'), 'gpupool')]",
+      "properties": {
+        "count": 0,
+        "vmSize": "Standard_NC6s_v3",
+        "osDiskSizeGB": 128,
+        "osDiskType": "Managed",
+        "osType": "Linux",
+        "mode": "User",
+        "type": "VirtualMachineScaleSets",
+        "vnetSubnetID": "[parameters('vnetSubnetId')]",
+        "enableAutoScaling": true,
+        "minCount": 0,
+        "maxCount": 3,
+        "availabilityZones": "[if(variables('useAvailabilityZones'), parameters('availabilityZones'), createArray())]",
+        "enableNodePublicIP": false,
+        "nodeTaints": [
+          "sku=gpu:NoSchedule"
+        ],
+        "nodeLabels": {
+          "workload": "gpu"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-07-01",
+      "name": "[replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "sku": {
+        "name": "Premium"
+      },
+      "properties": {
+        "adminUserEnabled": false,
+        "publicNetworkAccess": "Enabled",
+        "networkRuleBypassOptions": "AzureServices",
+        "zoneRedundancy": "Enabled"
+      }
+    }
+  ],
+  "outputs": {
+    "aksClusterId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName'))]"
+    },
+    "aksClusterName": {
+      "type": "string",
+      "value": "[variables('aksClusterName')]"
+    },
+    "aksClusterFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01').fqdn]"
+    },
+    "aksIdentityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01', 'full').identity.principalId]"
+    },
+    "aksKubeletIdentityObjectId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', variables('aksClusterName')), '2023-10-01').identityProfile.kubeletidentity.objectId]"
+    },
+    "containerRegistryId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', ''))]"
+    },
+    "containerRegistryName": {
+      "type": "string",
+      "value": "[replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')]"
+    },
+    "containerRegistryLoginServer": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', replace(format('{0}acr{1}', parameters('namingPrefix'), uniqueString(resourceGroup().id)), '-', '')), '2023-07-01').loginServer]"
+    }
+  }
+}

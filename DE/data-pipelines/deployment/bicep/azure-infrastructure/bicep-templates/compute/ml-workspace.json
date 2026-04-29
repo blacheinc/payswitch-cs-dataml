@@ -1,0 +1,195 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "8330245958803072243"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for deployment"
+      }
+    },
+    "namingPrefix": {
+      "type": "string",
+      "metadata": {
+        "description": "Naming prefix for resources"
+      }
+    },
+    "keyVaultId": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault resource ID"
+      }
+    },
+    "storageAccountId": {
+      "type": "string",
+      "metadata": {
+        "description": "Storage Account resource ID"
+      }
+    },
+    "applicationInsightsId": {
+      "type": "string",
+      "metadata": {
+        "description": "Application Insights resource ID"
+      }
+    },
+    "subnetId": {
+      "type": "string",
+      "metadata": {
+        "description": "Subnet resource ID for AML compute (must be in same VNet as the Storage Account when storage has VNet restrictions)"
+      }
+    },
+    "enableGpuCluster": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable GPU compute cluster for deep learning workloads (may require additional vCPU quota)"
+      }
+    },
+    "workspaceSkuName": {
+      "type": "string",
+      "defaultValue": "Basic",
+      "allowedValues": [
+        "Basic",
+        "Standard",
+        "Premium"
+      ],
+      "metadata": {
+        "description": "Workspace SKU name"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags"
+      }
+    }
+  },
+  "variables": {
+    "workspaceName": "[format('{0}-mlw', parameters('namingPrefix'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.MachineLearningServices/workspaces",
+      "apiVersion": "2023-10-01",
+      "name": "[variables('workspaceName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "sku": {
+        "name": "[parameters('workspaceSkuName')]",
+        "tier": "[parameters('workspaceSkuName')]"
+      },
+      "properties": {
+        "friendlyName": "Credit Scoring ML Workspace",
+        "description": "Machine Learning workspace for credit scoring models and agentic AI",
+        "keyVault": "[parameters('keyVaultId')]",
+        "storageAccount": "[parameters('storageAccountId')]",
+        "applicationInsights": "[parameters('applicationInsightsId')]",
+        "publicNetworkAccess": "Enabled",
+        "hbiWorkspace": true,
+        "v1LegacyMode": false
+      }
+    },
+    {
+      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+      "apiVersion": "2023-10-01",
+      "name": "[format('{0}/{1}', variables('workspaceName'), 'cpu-cluster')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "computeType": "AmlCompute",
+        "properties": {
+          "vmSize": "Standard_D4s_v3",
+          "vmPriority": "Dedicated",
+          "scaleSettings": {
+            "minNodeCount": 0,
+            "maxNodeCount": 4,
+            "nodeIdleTimeBeforeScaleDown": "PT5M"
+          },
+          "remoteLoginPortPublicAccess": "Disabled",
+          "subnet": {
+            "id": "[parameters('subnetId')]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+      ]
+    },
+    {
+      "condition": "[parameters('enableGpuCluster')]",
+      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+      "apiVersion": "2023-10-01",
+      "name": "[format('{0}/{1}', variables('workspaceName'), 'gpu-cluster')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "computeType": "AmlCompute",
+        "properties": {
+          "vmSize": "Standard_NC6s_v3",
+          "vmPriority": "LowPriority",
+          "scaleSettings": {
+            "minNodeCount": 0,
+            "maxNodeCount": 2,
+            "nodeIdleTimeBeforeScaleDown": "PT5M"
+          },
+          "remoteLoginPortPublicAccess": "Disabled",
+          "subnet": {
+            "id": "[parameters('subnetId')]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+      "apiVersion": "2023-10-01",
+      "name": "[format('{0}/{1}', variables('workspaceName'), 'dev-compute-instance')]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "computeType": "ComputeInstance",
+        "properties": {
+          "vmSize": "Standard_D4s_v3",
+          "applicationSharingPolicy": "Personal",
+          "sshSettings": {
+            "sshPublicAccess": "Disabled"
+          },
+          "computeInstanceAuthorizationType": "personal",
+          "subnet": {
+            "id": "[parameters('subnetId')]"
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "workspaceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName'))]"
+    },
+    "workspaceName": {
+      "type": "string",
+      "value": "[variables('workspaceName')]"
+    },
+    "workspacePrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName')), '2023-10-01', 'full').identity.principalId]"
+    },
+    "discoveryUrl": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', variables('workspaceName')), '2023-10-01').discoveryUrl]"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "fraud-detection-sub",
+          "topicName": "fraud-detect-predict",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "fraud_detection_predict",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "fraud_detection_predict",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/functions/fraud_detection_predict",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-fraud-detection/functions/fraud_detection_predict",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-fraud-detection/fraud_detection_predict",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/vfs/tmp/FunctionsData/fraud_detection_predict.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "SERVICE_BUS_CONNECTION",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "fraud-detection-sub",
+          "topicName": "fraud-detection-train",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "fraud_detection_train",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "fraud_detection_train",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/functions/fraud_detection_train",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-fraud-detection/functions/fraud_detection_train",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-fraud-detection/fraud_detection_train",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-fraud-detection.azurewebsites.net/admin/vfs/tmp/FunctionsData/fraud_detection_train.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

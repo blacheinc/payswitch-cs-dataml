@@ -1,0 +1,46 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "v1/explain",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "api_explain",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "api_explain",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://payswitch-cs-customer-service.azurewebsites.net/admin/functions/api_explain",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-ml-rg/providers/Microsoft.Web/sites/payswitch-cs-customer-service/functions/api_explain",
+    "invokeUrlTemplate": "https://payswitch-cs-customer-service.azurewebsites.net/api/v1/explain",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "payswitch-cs-customer-service/api_explain",
+    "resourceGroup": "blache-cdtscr-dev-ml-rg",
+    "scriptHref": "https://payswitch-cs-customer-service.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://payswitch-cs-customer-service.azurewebsites.net/admin/vfs/tmp/FunctionsData/api_explain.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

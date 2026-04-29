@@ -1,0 +1,49 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "location":  {
+                                        "value":  "eastus2"
+                                    },
+                       "namingPrefix":  {
+                                            "value":  "payswitch-creditscore-prod"
+                                        },
+                       "vnetId":  {
+                                      "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/payswitch-creditscore-prod-network-rg/providers/Microsoft.Network/virtualNetworks/payswitch-creditscore-prod-vnet"
+                                  },
+                       "privateEndpointsSubnetId":  {
+                                                        "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/payswitch-creditscore-prod-network-rg/providers/Microsoft.Network/virtualNetworks/payswitch-creditscore-prod-vnet/subnets/private-endpoints-subnet"
+                                                    },
+                       "dataResourceGroupName":  {
+                                                     "value":  "payswitch-creditscore-prod-data-rg"
+                                                 },
+                       "securityResourceGroupName":  {
+                                                         "value":  "payswitch-creditscore-prod-security-rg"
+                                                     },
+                       "storageAccountName":  {
+                                                  "value":  "payswitcstqautpja4gjia6"
+                                              },
+                       "dataLakeStorageAccountName":  {
+                                                          "value":  "payswitcdlqautpja4gjia6"
+                                                      },
+                       "serviceBusNamespaceName":  {
+                                                       "value":  "payswitch-creditscore-prod-sb-qautpja4gjia6"
+                                                   },
+                       "redisName":  {
+                                         "value":  "payswitch-creditscore-prod-redis-qautpja4gjia6"
+                                     },
+                       "postgresServerName":  {
+                                                  "value":  "payswitch-creditscore-prod-postgres-qautpja4gjia6"
+                                              },
+                       "keyVaultName":  {
+                                            "value":  "payswitchkvufdjduon7l"
+                                        },
+                       "tags":  {
+                                    "value":  {
+                                                  "Environment":  "prod",
+                                                  "ManagedBy":  "Bicep",
+                                                  "Project":  "Credit-Scoring"
+                                              }
+                                }
+                   }
+}

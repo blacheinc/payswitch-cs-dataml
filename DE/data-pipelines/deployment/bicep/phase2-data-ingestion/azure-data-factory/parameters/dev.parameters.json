@@ -1,0 +1,40 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "location":  {
+                                        "value":  "eastus2"
+                                    },
+                       "namingPrefix":  {
+                                            "value":  "blache-cdtscr-dev"
+                                        },
+                       "deploymentEnvironment":  {
+                                                     "value":  "dev"
+                                                 },
+                       "dataLakeStorageAccountName":  {
+                                                          "value":  "blachedly27jgavel2x32"
+                                                      },
+                       "keyVaultName":  {
+                                            "value":  "blachekvruhclai6km"
+                                        },
+                       "serviceBusNamespaceName":  {
+                                                       "value":  "blache-cdtscr-dev-sb-y27jgavel2x32"
+                                                   },
+                       "sourceBlobStorageAccountName":  {
+                                                            "value":  "blachesty27jgavel2x32"
+                                                        },
+                       "metadataPostgresServerFqdn":  {
+                                                          "value":  "blache-cdtscr-dev-postgres-y27jgavel2x32.postgres.database.azure.com"
+                                                      },
+                       "privateNetworkMode":  {
+                                                  "value":  true
+                                              },
+                       "tags":  {
+                                    "value":  {
+                                                  "Environment":  "dev",
+                                                  "ManagedBy":  "Bicep",
+                                                  "Project":  "Credit-Scoring"
+                                              }
+                                }
+                   }
+}

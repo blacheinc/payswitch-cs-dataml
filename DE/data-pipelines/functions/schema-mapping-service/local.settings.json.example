@@ -1,0 +1,19 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "KEY_VAULT_URL": "https://YOUR_KEYVAULT_NAME.vault.azure.net/",
+    "ServiceBusConnectionString": "Endpoint=sb://YOUR_NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=YOUR_POLICY;SharedAccessKey=YOUR_KEY",
+    "DATALAKE_STORAGE_CONNECTION_STRING": "",
+    "SERVICEBUS_TOPIC_NAME": "data-ingested",
+    "SERVICEBUS_SUBSCRIPTION_NAME": "start-transformation",
+    "DATALAKE_STORAGE_ACCOUNT_NAME_SECRET": "DataLakeStorageAccountName",
+    "BRONZE_FILE_SYSTEM_NAME": "bronze",
+    "SILVER_FILE_SYSTEM_NAME": "silver",
+    "SCHEMA_REGISTRY_ENABLE_REDIS": "",
+    "ENVIRONMENT": "local",
+    "LOG_LEVEL": "WARNING"
+  },
+  "ConnectionStrings": {}
+}

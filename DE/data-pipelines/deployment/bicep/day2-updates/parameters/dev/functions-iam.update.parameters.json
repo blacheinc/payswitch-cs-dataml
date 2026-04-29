@@ -1,0 +1,56 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "functionApps": {
+      "value": [
+        {
+          "name": "blache-cdtscr-dev-schema-mapping-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "blache-cdtscr-dev-training-ingestion-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "blache-cdtscr-dev-transformation-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "blache-cdtscr-dev-adf-trigger-func",
+          "resourceGroupName": ""
+        },
+        {
+          "name": "blache-cdtscr-dev-file-checksum-func",
+          "resourceGroupName": ""
+        }
+      ]
+    },
+    "excludedFunctionAppNames": {
+      "value": [
+        "blache-cdtscr-dev-file-checksum-func"
+      ]
+    },
+    "blobStorageAccountName": {
+      "value": ""
+    },
+    "dataLakeStorageAccountName": {
+      "value": ""
+    },
+    "storageResourceGroupName": {
+      "value": ""
+    },
+    "keyVaultName": {
+      "value": ""
+    },
+    "keyVaultResourceGroupName": {
+      "value": ""
+    },
+    "serviceBusNamespaceName": {
+      "value": ""
+    },
+    "serviceBusResourceGroupName": {
+      "value": ""
+    }
+  }
+}

@@ -1,0 +1,215 @@
+﻿[
+  {
+    "config": {
+      "bindings": [
+        {
+          "connection": "ServiceBusConnectionString",
+          "direction": "IN",
+          "name": "message",
+          "subscriptionName": "mapping-complete",
+          "topicName": "schema-mapping-service",
+          "type": "serviceBusTrigger"
+        }
+      ],
+      "entryPoint": "transformation_trigger",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "transformation_trigger",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/functions/transformation_trigger",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-transform-y27jgavel2x32/functions/transformation_trigger",
+    "invokeUrlTemplate": null,
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-transform-y27jgavel2x32/transformation_trigger",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/transformation_trigger.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "transform/inference",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "transform_inference",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "transform_inference",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/functions/transform_inference",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-transform-y27jgavel2x32/functions/transform_inference",
+    "invokeUrlTemplate": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/api/transform/inference",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-transform-y27jgavel2x32/transform_inference",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/transform_inference.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "transform/inference/batch",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "transform_inference_batch",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "transform_inference_batch",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/functions/transform_inference_batch",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-transform-y27jgavel2x32/functions/transform_inference_batch",
+    "invokeUrlTemplate": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/api/transform/inference/batch",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-transform-y27jgavel2x32/transform_inference_batch",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/transform_inference_batch.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "transform/inference/batch/submit",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "transform_inference_batch_submit",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "transform_inference_batch_submit",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/functions/transform_inference_batch_submit",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-transform-y27jgavel2x32/functions/transform_inference_batch_submit",
+    "invokeUrlTemplate": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/api/transform/inference/batch/submit",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-transform-y27jgavel2x32/transform_inference_batch_submit",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/transform_inference_batch_submit.dat",
+    "type": "Microsoft.Web/sites/functions"
+  },
+  {
+    "config": {
+      "bindings": [
+        {
+          "authLevel": "FUNCTION",
+          "direction": "IN",
+          "methods": [
+            "POST"
+          ],
+          "name": "req",
+          "route": "transform/training",
+          "type": "httpTrigger"
+        },
+        {
+          "direction": "OUT",
+          "name": "$return",
+          "type": "http"
+        }
+      ],
+      "entryPoint": "transform_training",
+      "functionDirectory": "/home/site/wwwroot",
+      "language": "python",
+      "name": "transform_training",
+      "scriptFile": "function_app.py"
+    },
+    "configHref": null,
+    "files": null,
+    "functionAppId": null,
+    "href": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/functions/transform_training",
+    "id": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.Web/sites/blache-cdtscr-dev-transform-y27jgavel2x32/functions/transform_training",
+    "invokeUrlTemplate": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/api/transform/training",
+    "isDisabled": false,
+    "kind": null,
+    "language": "python",
+    "location": "East US 2",
+    "name": "blache-cdtscr-dev-transform-y27jgavel2x32/transform_training",
+    "resourceGroup": "blache-cdtscr-dev-data-rg",
+    "scriptHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/home/site/wwwroot/function_app.py",
+    "scriptRootPathHref": null,
+    "secretsFileHref": null,
+    "testData": "",
+    "testDataHref": "https://blache-cdtscr-dev-transform-y27jgavel2x32.azurewebsites.net/admin/vfs/tmp/FunctionsData/transform_training.dat",
+    "type": "Microsoft.Web/sites/functions"
+  }
+]

@@ -1,0 +1,207 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Azure Functions
+local.settings.json
+.python_packages/
+.funcignore
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Azure ML model download artifacts
+credit-scoring-*/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+*.log
+
+# Data files (don't commit large datasets)
+*.parquet
+*.csv
+*.pkl
+*.joblib
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Claude
+.claude/
+CLAUDE.md
+
+#temp files
+temp_files/
+
+# Working analysis notes (local only)
+credit-scoring/azure-infrastructure/BICEP_PROD_PRIVATE_GAP_DEEP_DIVE_2026-04-17.md
+
+credit-scoring/
+curated_csv_export/
+customer-service-agent/
+dummy_data/
+infrastructure/
+orchestrator/
+project execution artifacts/
+project_documentation/
+SoW/
+shared/
+tests/
+training-agents/
+deploy.sh
+host.json
+pyproject.toml
+README.md
+tags-diagnostic-settings-20260127-181529.json
+uv.lock
+
+
+.env
+local.settings.json
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.python-version
+.python-history
+.vscode/
+.idea/
+
+# Virtual envs (never push)
+**/adf-trigger-env/
+**/schema-mapping-env/
+**/training-ingestion-env/
+**/transform-service-env/
+.venv/
+venv/
+
+# Python bytecode
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Log / deploy artifacts
+*.zip
+*_conn.txt
+*.secrets
+secrets*.txt
+
+# Docs and runbooks excluded from GitHub (paths relative to this folder)
+docs/ADF_AZURE_FUNCTION_ALIGNMENT_PLAN.md
+docs/ADF_LIVE_EXPORT_RUNBOOK.md
+docs/ADF_PARAMETER_DIAGNOSTIC.md
+docs/ADF_PARAMETER_ISSUE_FIX.md
+docs/ADF_PIPELINE_PARAMETER_MAPPING.md
+docs/ADF_PIPELINE_TESTING_GUIDE.md
+docs/ADF_PIPELINE_UPDATE_GUIDE.md
+docs/ADF_REST_API_PARAMETER_DEBUG.md
+docs/BACKEND_ENGINEER_GUIDE.md
+docs/BACKEND_TO_ML_TRANSFORMATION_FLOW.md
+docs/BACKEND_TRANSFORMATION_INTEGRATION.md
+docs/BICEP_DEPLOYMENT_GAP_ANALYSIS.md
+docs/CLIENT_ARCHITECTURE_EXPLANATION.md
+docs/DATA_FACTORY_GUI_IMPLEMENTATION_GUIDE.md
+docs/DATA_FACTORY_PIPELINE_DESIGN.md
+docs/E2E_TRAINING_PIPELINE_TEST.md
+docs/FUNCTIONS_POWERSHELL_RUNBOOKS_INDEX.md
+docs/INTEGRATION_E2E_RUNBOOK.md
+docs/INTEGRATION_TEST_PLAN.md
+docs/PIPELINE_GAP_RESOLUTION_PLAN.md
+docs/PIPELINE_IMPLEMENTATION_CHECKLIST.md
+docs/PIPELINE_TESTING_GUIDE.md
+docs/PRIVATE_NETWORK_READINESS_ASSESSMENT.md
+docs/REPO_HYGIENE_CLEANUP_PROPOSAL.md
+docs/TARGET_PIPELINE_LOGIC_RUNBOOK_AND_GAPS.md
+docs/TEST_ADF_TRIGGER_GUIDE.md
+docs/TRANSFORMED_SUBSCRIPTION_CHECKLIST.md
+docs/TROUBLESHOOTING_EMPTY_PARAMETERS.md
+docs/XDS_DATA_CONTRACT_GAP_ANALYSIS.md
+docs/XDS_DETERMINISTIC_IMPLEMENTATION_CHECKLIST.md
+docs/XDS_DETERMINISTIC_POLICY_V1.md
+docs/XDS_EXPECTED_INPUT_CONTRACT_FOR_FEATURES_AND_TARGETS.md
+docs/XDS_FEATURE_TARGET_SPLIT_AND_DERIVATIONS_V2.md
+docs/XDS_PAYLOAD_TO_30_ML_FEATURES_TABLE.md
+docs/XDS_PAYLOAD_TO_GOLD_PARQUET_CODE_MAPPING.md
+
+# --- Functions: secrets & local config ---
+functions/adf-pipeline-trigger/local.settings.json
+functions/training-data-ingestion/local.settings.json
+functions/training-data-ingestion/.env
+functions/schema-mapping-service/.env
+functions/schema-mapping-service/local.settings.json
+functions/transformation-service/local.settings.json
+functions/transformation-service/.env
+
+# --- Excluded apps (not part of production GitHub scope) ---
+functions/data-quality-agent/
+functions/feature-engineering-agent/
+
+# --- Schema mapping: large / sensitive local fixtures (keep tests/ for future CI) ---
+functions/schema-mapping-service/test_data/
+
+# --- Schema mapping: extra local / obsolete markdown (optional noise) ---
+functions/schema-mapping-service/SERVICEBUS_FILTERS_HOW_IT_WORKS.md
+functions/schema-mapping-service/SERVICEBUS_INTEGRATION_STATUS.md
+functions/schema-mapping-service/STATUS_REVIEW.md
+functions/schema-mapping-service/SYSTEMS_UPDATE_CHECKLIST.md
+functions/schema-mapping-service/TEST_DATA_SETUP.md
+
+# --- ADF trigger: runbooks & one-off scripts not for repo ---
+functions/adf-pipeline-trigger/QUICK_FIX_FILTER.md
+functions/adf-pipeline-trigger/README_POWERSHELL_RUNBOOK.md
+functions/adf-pipeline-trigger/TEST_ADF_CLI_COMMAND.md
+functions/adf-pipeline-trigger/test_adf_cli_file.ps1
+functions/adf-pipeline-trigger/test_adf_cli_simple.ps1
+functions/adf-pipeline-trigger/test_adf_trigger_cli.ps1
+functions/adf-pipeline-trigger/check_and_fix_subscription_filter.py
+functions/adf-pipeline-trigger/grant_data_factory_contributor_to_trigger_mi.ps1
+
+functions/file-checksum-calculator/setup-iam-permissions.ps1
+functions/file-checksum-calculator/README_POWERSHELL_RUNBOOK.md
+
+services/training-data-upload/.env
+
+test-data/SETUP_SUMMARY.md
+test-data/upload_test_datasets.py
+test-data/VERIFICATION_CHECKLIST.md
+
+
+deployment/bicep/azure-infrastructure/BICEP_PROD_PRIVATE_GAP_DEEP_DIVE_2026-04-17.md
+deployment/bicep/azure-infrastructure/INDIVIDUAL_RESOURCE_DEPLOYMENT_GUIDE.md
+deployment/bicep/azure-infrastructure/PHASE1_ENTERPRISE_REVIEW.md
+deployment/bicep/azure-infrastructure/QUICKSTART.md
+deployment/bicep/phase2-data-ingestion/services/

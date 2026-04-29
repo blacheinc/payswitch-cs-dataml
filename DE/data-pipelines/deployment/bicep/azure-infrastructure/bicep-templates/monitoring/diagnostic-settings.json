@@ -1,0 +1,259 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "7059972417218573260"
+    }
+  },
+  "parameters": {
+    "logAnalyticsWorkspaceId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics Workspace ID (required)"
+      }
+    },
+    "storageAccountId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Storage Account ID (optional - leave empty to skip)"
+      }
+    },
+    "dataLakeId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Data Lake Storage Account ID (optional - leave empty to skip)"
+      }
+    },
+    "postgresServerId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "PostgreSQL Server ID (optional - leave empty to skip)"
+      }
+    },
+    "redisId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Redis Cache ID (optional - leave empty to skip)"
+      }
+    },
+    "keyVaultId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Key Vault ID (optional - leave empty to skip)"
+      }
+    },
+    "serviceBusNamespaceId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Service Bus Namespace ID (optional - leave empty to skip)"
+      }
+    },
+    "cosmosAccountId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Cosmos DB Account ID (optional - leave empty to skip)"
+      }
+    }
+  },
+  "variables": {
+    "settingsArray": "[union(if(not(empty(parameters('storageAccountId'))), createArray('Storage Account'), createArray()), if(not(empty(parameters('dataLakeId'))), createArray('Data Lake'), createArray()), if(not(empty(parameters('postgresServerId'))), createArray('PostgreSQL'), createArray()), if(not(empty(parameters('redisId'))), createArray('Redis'), createArray()), if(not(empty(parameters('keyVaultId'))), createArray('Key Vault'), createArray()), if(not(empty(parameters('serviceBusNamespaceId'))), createArray('Service Bus'), createArray()), if(not(empty(parameters('cosmosAccountId'))), createArray('Cosmos DB'), createArray()))]"
+  },
+  "resources": [
+    {
+      "condition": "[not(empty(parameters('storageAccountId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', split(parameters('storageAccountId'), '/')[8])]",
+      "name": "storage-account-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "StorageRead",
+            "enabled": true
+          },
+          {
+            "category": "StorageWrite",
+            "enabled": true
+          },
+          {
+            "category": "StorageDelete",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Transaction",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('dataLakeId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', split(parameters('dataLakeId'), '/')[8])]",
+      "name": "data-lake-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "StorageRead",
+            "enabled": true
+          },
+          {
+            "category": "StorageWrite",
+            "enabled": true
+          },
+          {
+            "category": "StorageDelete",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Transaction",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('postgresServerId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DBforPostgreSQL/flexibleServers/{0}', split(parameters('postgresServerId'), '/')[8])]",
+      "name": "postgres-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "PostgreSQLLogs",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('redisId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.Cache/redis/{0}', split(parameters('redisId'), '/')[8])]",
+      "name": "redis-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('keyVaultId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.KeyVault/vaults/{0}', split(parameters('keyVaultId'), '/')[8])]",
+      "name": "key-vault-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "AuditEvent",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('serviceBusNamespaceId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.ServiceBus/namespaces/{0}', split(parameters('serviceBusNamespaceId'), '/')[8])]",
+      "name": "service-bus-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "OperationalLogs",
+            "enabled": true
+          },
+          {
+            "category": "RuntimeAuditLogs",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('cosmosAccountId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[format('Microsoft.DocumentDB/databaseAccounts/{0}', split(parameters('cosmosAccountId'), '/')[8])]",
+      "name": "cosmos-db-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsWorkspaceId')]",
+        "logs": [
+          {
+            "category": "DataPlaneRequests",
+            "enabled": true
+          },
+          {
+            "category": "QueryRuntimeStatistics",
+            "enabled": true
+          },
+          {
+            "category": "PartitionKeyStatistics",
+            "enabled": true
+          },
+          {
+            "category": "ControlPlaneRequests",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "AllMetrics",
+            "enabled": true
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "diagnosticSettingsCreated": {
+      "type": "array",
+      "value": "[variables('settingsArray')]"
+    }
+  }
+}

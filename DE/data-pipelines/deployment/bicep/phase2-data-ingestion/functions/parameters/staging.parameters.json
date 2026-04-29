@@ -1,0 +1,34 @@
+{
+    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion":  "1.0.0.0",
+    "parameters":  {
+                       "location":  {
+                                        "value":  "eastus2"
+                                    },
+                       "namingPrefix":  {
+                                            "value":  "blache-cdtscr-staging"
+                                        },
+                       "functionsSubnetId":  {
+                                                 "value":  "REPLACE_STAGING_FUNCTIONS_SUBNET_ID"
+                                             },
+                       "privateEndpointsSubnetId":  {
+                                                        "value":  "REPLACE_STAGING_PRIVATE_ENDPOINT_SUBNET_ID"
+                                                    },
+                       "functionsStorageAccountName":  {
+                                                           "value":  "REPLACE_STAGING_FUNCTIONS_STORAGE"
+                                                       },
+                       "privateNetworkMode":  {
+                                                  "value":  true
+                                              },
+                       "premiumPlanSku":  {
+                                              "value":  "EP1"
+                                          },
+                       "tags":  {
+                                    "value":  {
+                                                  "Environment":  "staging",
+                                                  "ManagedBy":  "Bicep",
+                                                  "Project":  "Credit-Scoring"
+                                              }
+                                }
+                   }
+}

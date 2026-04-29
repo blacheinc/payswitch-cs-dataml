@@ -1,0 +1,22 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "AzureWebJobsFeatureFlags": "EnableWorkerIndexing",
+    
+    "KEY_VAULT_URL": "https://<your-key-vault-name>.vault.azure.net/",
+    "ENVIRONMENT": "local",
+    
+    "ServiceBusConnectionString": "",
+    "SERVICEBUS_TOPIC_NAME": "data-awaits-ingestion",
+    "SERVICEBUS_SUBSCRIPTION_NAME": "temp-peek-subscription",
+    
+    "BLOB_STORAGE_ACCOUNT_NAME": "",
+    "BLOB_CONTAINER_NAME": "data",
+    "DATALAKE_STORAGE_ACCOUNT_NAME": "",
+    
+    "LOG_LEVEL": "INFO"
+  },
+  "ConnectionStrings": {}
+}

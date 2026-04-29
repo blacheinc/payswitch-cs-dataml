@@ -1,0 +1,15 @@
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\bin\extensions.deps.json
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\bin\extensions.dll
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\bin\extensions.pdb
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\bin\Microsoft.Build.Framework.dll
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\bin\Microsoft.Build.Utilities.Core.dll
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.csproj.AssemblyReference.cache
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.AssemblyInfoInputs.cache
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.AssemblyInfo.cs
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.csproj.CoreCompileInputs.cache
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.csproj.CopyComplete
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.dll
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\refint\extensions.dll
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\extensions.pdb
+C:\Users\olanr\Desktop\blache\data-pipelines\functions\schema-mapping-service\obj\Debug\net6.0\ref\extensions.dll

@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "namingPrefix": {
+            "value": "blache-cdtscr-dev"
+        },
+        "vnetId": {
+            "value": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet"
+        },
+        "privateEndpointsSubnetId": {
+            "value": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet/subnets/private-endpoints-subnet"
+        },
+        "dataResourceGroupName": {
+            "value": "blache-cdtscr-dev-data-rg"
+        },
+        "securityResourceGroupName": {
+            "value": "blache-cdtscr-dev-security-rg"
+        },
+        "storageAccountName": {
+            "value": "blachesty27jgavel2x32"
+        },
+        "dataLakeStorageAccountName": {
+            "value": "blachedly27jgavel2x32"
+        },
+        "serviceBusNamespaceName": {
+            "value": "blache-cdtscr-dev-sb-y27jgavel2x32"
+        },
+        "redisName": {
+            "value": "blache-cdtscr-dev-redis-y27jgavel2x32"
+        },
+        "postgresServerName": {
+            "value": "blache-cdtscr-dev-postgres-y27jgavel2x32"
+        },
+        "keyVaultName": {
+            "value": "blachekvruhclai6km"
+        },
+        "tags": {
+            "value": {
+                "Environment": "dev",
+                "ManagedBy": "Bicep",
+                "Project": "Credit-Scoring"
+            }
+        }
+    }
+}
