@@ -11,6 +11,28 @@ Run from **`transformation-service`** (folder with `function_app.py`).
 
 ---
 
+## 0. Deploy with `deploy.ps1`
+
+Run from this folder:
+
+```powershell
+Set-Location "<your-repo>\data-pipelines\functions\transformation-service"
+```
+
+Deploy with explicit parameters:
+
+```powershell
+.\deploy.ps1 -ResourceGroupName "<rg>" -FunctionAppName "<app>" -Location "eastus2"
+```
+
+Quick post-deploy check:
+
+```powershell
+az functionapp function list -g "<rg>" -n "<app>" -o table
+```
+
+---
+
 ## 1. Load `local.settings.json` into the environment
 
 ```powershell
