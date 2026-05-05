@@ -138,6 +138,10 @@ Use each module’s `parameters/prod.parameters.json`.
 
 Continue in `PRIVATE_DAY2_UPDATES.md`.
 
+Then run ADF completion/dependency checks:
+
+- `../phase2-data-ingestion/azure-data-factory/ADF_COMPLETION_RUNBOOK.md`
+
 ## 6) Post-deploy operational checklist (minimum)
 
 - Confirm deployments succeeded (`Succeeded`) for subscription deployment and each Phase 2 group deployment.

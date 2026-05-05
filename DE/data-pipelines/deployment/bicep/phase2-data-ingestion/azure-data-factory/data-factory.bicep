@@ -33,6 +33,15 @@ param sourceBlobStorageAccountName string = ''
 @description('Metadata PostgreSQL server FQDN (without protocol)')
 param metadataPostgresServerFqdn string = ''
 
+@description('Metadata PostgreSQL database name used by ADF linked service')
+param metadataPostgresDatabaseName string = 'postgres'
+
+@description('Metadata PostgreSQL username used by ADF linked service')
+param metadataPostgresUsername string = 'postgres_admin'
+
+@description('Key Vault secret name that stores Metadata PostgreSQL password')
+param metadataPostgresPasswordSecretName string = 'postgres-admin-password'
+
 @description('Enable private networking posture for Data Factory (disables public access on the factory resource)')
 param privateNetworkMode bool = false
 
@@ -200,8 +209,8 @@ resource metadataPostgresLinkedServiceAlias 'Microsoft.DataFactory/factories/lin
     annotations: []
     typeProperties: {
       server: metadataPostgresServerFqdn
-      database: 'postgres'
-      username: 'postgres_admin'
+      database: metadataPostgresDatabaseName
+      username: metadataPostgresUsername
       encryptedCredential: ''
       password: {
         type: 'AzureKeyVaultSecret'
@@ -209,7 +218,7 @@ resource metadataPostgresLinkedServiceAlias 'Microsoft.DataFactory/factories/lin
           type: 'LinkedServiceReference'
           referenceName: keyVaultLinkedServiceName
         }
-        secretName: 'postgres-admin-password'
+        secretName: metadataPostgresPasswordSecretName
       }
     }
     connectVia: {

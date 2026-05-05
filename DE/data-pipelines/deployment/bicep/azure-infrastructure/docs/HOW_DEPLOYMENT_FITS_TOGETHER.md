@@ -68,6 +68,8 @@ So this is **not** meaningless duplication: one path is **pipeline contract** in
 
 Details: [deployment/adf/README.md](../../../adf/README.md) and [phase2-data-ingestion/README.md](../../phase2-data-ingestion/README.md).
 
+Completion checklist and dependency verification: [phase2-data-ingestion/azure-data-factory/ADF_COMPLETION_RUNBOOK.md](../../phase2-data-ingestion/azure-data-factory/ADF_COMPLETION_RUNBOOK.md).
+
 ## Archived analysis
 
 `docs/archive/CONNECTIVITY_ANALYSIS.md` (if present) is **retired** reference material for network posture studies. Prefer current module behavior and the private deployment guide for production connectivity decisions.

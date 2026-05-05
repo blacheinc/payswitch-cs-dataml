@@ -24,8 +24,8 @@ if ($ENVIRONMENT -notin @("dev","prod")) { throw "ENVIRONMENT must be dev or pro
 $PARAMS = Join-Path $DAY2 "parameters\$ENVIRONMENT"
 
 $SCRIPTS = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\azure-infrastructure\scripts"
-$ORG_NAME = "payswitch"
-$PROJECT_NAME = "cdtscr"
+$ORG_NAME = "<org-name>"
+$PROJECT_NAME = "<project-name>"
 
 # Recover latest successful main deployment for selected environment
 $DEPLOYMENT_NAME_MAIN = az deployment sub list `
@@ -38,6 +38,7 @@ if ([string]::IsNullOrWhiteSpace($DEPLOYMENT_NAME_MAIN)) {
 
 cd $SCRIPTS
 . .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN
+$LOCATION = az deployment sub show --name $DEPLOYMENT_NAME_MAIN --query location -o tsv
 
 $SERVICEBUS_NAMESPACE = az servicebus namespace list -g $DATA_RG --query "[0].name" -o tsv
 $KEYVAULT_NAME = az keyvault list -g $SECURITY_RG --query "[0].name" -o tsv
@@ -150,10 +151,51 @@ cd "$DAY2\scripts"
   -StorageResourceGroupName $DATA_RG `
   -KeyVaultName $KEYVAULT_NAME `
   -KeyVaultResourceGroupName $SECURITY_RG `
+  -ServiceBusNamespaceName $SERVICEBUS_NAMESPACE `
+  -ServiceBusResourceGroupName $DATA_RG `
   -ExcludedFunctionAppNames @("$ORG_NAME-$PROJECT_NAME-$ENVIRONMENT-file-checksum-func")
 ```
 
-## 6) PostgreSQL artifact apply
+## 6) ADF IAM updates (system-assigned identity)
+
+Resolve ADF factory name and assign required roles on Storage, Key Vault, and Service Bus:
+
+```powershell
+$ADF_RG = $DATA_RG
+$ADF_NAME = az datafactory list -g $ADF_RG --query "[0].name" -o tsv
+if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "Could not resolve ADF factory in $ADF_RG." }
+
+az deployment sub create `
+  --name "day2-$ENVIRONMENT-adf-iam-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
+  --location $LOCATION `
+  --template-file "$DAY2\modules\adf-iam\main.update.bicep" `
+  --parameters "dataFactoryName=$ADF_NAME" `
+  --parameters "dataFactoryResourceGroupName=$ADF_RG" `
+  --parameters "blobStorageAccountName=$BLOB_STORAGE_ACCOUNT" `
+  --parameters "dataLakeStorageAccountName=$DATALAKE_STORAGE_ACCOUNT" `
+  --parameters "storageResourceGroupName=$DATA_RG" `
+  --parameters "keyVaultName=$KEYVAULT_NAME" `
+  --parameters "keyVaultResourceGroupName=$SECURITY_RG" `
+  --parameters "serviceBusNamespaceName=$SERVICEBUS_NAMESPACE" `
+  --parameters "serviceBusResourceGroupName=$DATA_RG"
+```
+
+Verify ADF role assignments:
+
+```powershell
+$ADF_PRINCIPAL_ID = az datafactory show -g $ADF_RG -n $ADF_NAME --query identity.principalId -o tsv
+$KV_ID = az keyvault show -g $SECURITY_RG -n $KEYVAULT_NAME --query id -o tsv
+$SB_ID = az servicebus namespace show -g $DATA_RG -n $SERVICEBUS_NAMESPACE --query id -o tsv
+$BLOB_ID = az storage account show -g $DATA_RG -n $BLOB_STORAGE_ACCOUNT --query id -o tsv
+$DLS_ID = az storage account show -g $DATA_RG -n $DATALAKE_STORAGE_ACCOUNT --query id -o tsv
+
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $KV_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $SB_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $BLOB_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $DLS_ID -o table
+```
+
+## 7) PostgreSQL artifact apply
 
 ```powershell
 cd "$DAY2\scripts"
