@@ -69,8 +69,8 @@ cd credit-scoring\azure-infrastructure\scripts\testing
 ```
 
 **Parameters:**
-- `-Environment`: Environment name (default: `dev`)
-- `-NamingPrefix`: Naming prefix (default: `blache-{Environment}`)
+- `-Environment`: Environment name (**required**; `dev`, `staging`, or `prod`)
+- `-NamingPrefix`: Naming prefix (optional; defaults to `blache-{Environment}`)
 
 ### Option 2: Test All Phases
 
@@ -99,9 +99,9 @@ cd credit-scoring\azure-infrastructure\scripts\testing
 ```
 
 **Parameters:**
-- `-Environment`: Environment name (default: `dev`)
+- `-Environment`: Environment name (**required**; `dev`, `staging`, or `prod`)
 - `-Phase`: Phase number (0-5, default: `0`)
-- `-NamingPrefix`: Naming prefix (default: `blache-{Environment}`)
+- `-NamingPrefix`: Naming prefix (optional; defaults to `blache-{Environment}`)
 - `-Teardown`: Teardown after tests (`yes` or `no`, default: `yes`)
 
 ## Manual Deployment (if bash not available)

@@ -1,7 +1,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$DataResourceGroup,
-    [string]$Environment = "prod"
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("dev", "staging", "prod")]
+    [string]$Environment
 )
 
 $ErrorActionPreference = "Stop"

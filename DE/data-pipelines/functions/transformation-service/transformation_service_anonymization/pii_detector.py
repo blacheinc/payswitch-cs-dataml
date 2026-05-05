@@ -1,3 +1,5 @@
+"""Lightweight PII column classification from header names (regex heuristics)."""
+
 from __future__ import annotations
 
 import re
@@ -32,6 +34,8 @@ def _categorize_column(column_name: str) -> Optional[str]:
 
 
 class PIIDetector:
+    """Assigns columns to PII categories and suggests anonymization methods."""
+
     def detect_pii(self, column_names: List[str], column_types: Dict[str, str]) -> PIIDetectionResult:
         result = PIIDetectionResult()
         anonymization_methods: Dict[str, str] = {}

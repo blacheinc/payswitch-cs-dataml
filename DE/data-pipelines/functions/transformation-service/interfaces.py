@@ -1,3 +1,5 @@
+"""Typing protocols for parser, feature builder, hard-stop evaluator, rules, and quality score."""
+
 from typing import Any, Dict, Protocol, Tuple
 
 from contracts import BureauHitStatus, TransformRequest

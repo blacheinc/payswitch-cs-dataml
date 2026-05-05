@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "12166534568614593464"
+      "templateHash": "2999341887286842675"
     }
   },
   "parameters": {
@@ -93,14 +93,14 @@
       "type": "bool",
       "defaultValue": "[not(equals(parameters('environment'), 'prod'))]",
       "metadata": {
-        "description": "Deploy AKS cluster (omit in prod v1 until Kubernetes workloads are in scope)"
+        "description": "Deploy AKS cluster (optional; off by default in prod unless overridden)"
       }
     },
     "deployMlWorkspace": {
       "type": "bool",
-      "defaultValue": "[not(equals(parameters('environment'), 'prod'))]",
+      "defaultValue": true,
       "metadata": {
-        "description": "Deploy Azure Machine Learning workspace module (omit in prod v1)"
+        "description": "Deploy Azure Machine Learning workspace module (defaults on for all environments)"
       }
     },
     "deployJumpBox": {

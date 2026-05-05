@@ -1,8 +1,12 @@
+"""Compose parser, features, hard stops, rules, and quality into a single TransformResponse."""
+
 from contracts import TransformDiagnostics, TransformRequest, TransformResponse
 from interfaces import IFeatureBuilder, IHardStopEvaluator, IQualityScoreProvider, IRuleEngine, IXdsParser
 
 
 class TransformationOrchestrator:
+    """Run the full deterministic pipeline for one ``TransformRequest``."""
+
     def __init__(
         self,
         parser: IXdsParser,

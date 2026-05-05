@@ -1,3 +1,5 @@
+"""Write gold parquet outputs and publish Service Bus messages for ML/backend handoffs."""
+
 import io
 import json
 import logging

@@ -2,6 +2,8 @@
 
 Use these as non-secret templates. Replace all placeholder values before running locally.
 
+Where a folder contains **`local.settings.json.example`** or **`.env.example`**, copy that file to `local.settings.json` / `.env` and fill in values—the snippets below stay in sync conceptually but the checked-in examples are the canonical bootstrap files.
+
 ## adf-pipeline-trigger
 
 `.env.example`

@@ -4,7 +4,9 @@
 # ==================================================
 
 param(
-    [string]$Environment = "dev",
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("dev", "staging", "prod")]
+    [string]$Environment,
     [int]$Phase = 0,
     [string]$NamingPrefix = "blache-$Environment",
     [string]$Teardown = "yes"

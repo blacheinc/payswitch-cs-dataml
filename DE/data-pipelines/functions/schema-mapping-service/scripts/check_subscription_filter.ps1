@@ -1,10 +1,25 @@
 # PowerShell script to check Service Bus subscription filter
 # Run this to verify the SQL filter on the start-transformation subscription
 
-$namespaceName = "blache-cdtscr-dev-sb-y27jgavel2x32"
-$resourceGroup = "blache-cdtscr-dev-data-rg"
-$topicName = "data-ingested"
-$subscriptionName = "start-transformation"
+param(
+    [string]$ServiceBusNamespace = "",
+    [string]$ResourceGroup = "",
+    [string]$TopicName = "",
+    [string]$SubscriptionName = ""
+)
+
+$namespaceName = if ($ServiceBusNamespace) { $ServiceBusNamespace } else { $env:SB_NAMESPACE_NAME }
+$resourceGroup = if ($ResourceGroup) { $ResourceGroup } else { $env:SB_RESOURCE_GROUP }
+$topicName = if ($TopicName) { $TopicName } else { $env:SB_TOPIC_NAME }
+$subscriptionName = if ($SubscriptionName) { $SubscriptionName } else { $env:SB_SUBSCRIPTION_NAME }
+
+if (-not $topicName) { $topicName = "data-ingested" }
+if (-not $subscriptionName) { $subscriptionName = "start-transformation" }
+
+if (-not $namespaceName -or -not $resourceGroup) {
+    Write-Host "ERROR: Missing Service Bus namespace/resource group. Pass parameters or set SB_NAMESPACE_NAME and SB_RESOURCE_GROUP." -ForegroundColor Red
+    exit 1
+}
 
 Write-Host "Checking subscription filter for: $subscriptionName" -ForegroundColor Cyan
 Write-Host ""

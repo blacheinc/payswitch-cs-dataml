@@ -1,2 +1,2 @@
-﻿# Copied before `func publish` (see scripts/sync_schema_mapping_bundle.ps1). Not source of truth.
+﻿# Local copy only before publish (historical); not source of truth. See scripts/deprecated/sync_schema_mapping_bundle.ps1 (no-op).
 schema-mapping-service/

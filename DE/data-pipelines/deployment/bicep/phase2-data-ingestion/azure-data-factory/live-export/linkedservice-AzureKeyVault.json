@@ -1,13 +1,13 @@
-﻿{
+{
     "etag":  "5200b2ee-0000-0200-0000-698c01720000",
-    "id":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.DataFactory/factories/blache-cdtscr-dev-adf-y27jgavel2x32/linkedservices/AzureKeyVault",
+    "id":  "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DataFactory/factories/__ADF_FACTORY_NAME__/linkedservices/AzureKeyVault",
     "name":  "AzureKeyVault",
     "properties":  {
                        "additionalProperties":  null,
                        "annotations":  [
 
                                        ],
-                       "baseUrl":  "https://blachekvruhclai6km.vault.azure.net/",
+                       "baseUrl":  "https://__KEY_VAULT_NAME__.vault.azure.net/",
                        "connectVia":  null,
                        "credential":  null,
                        "description":  null,
@@ -15,6 +15,6 @@
                        "type":  "AzureKeyVault",
                        "version":  null
                    },
-    "resourceGroup":  "blache-cdtscr-dev-data-rg",
+    "resourceGroup":  "__RESOURCE_GROUP__",
     "type":  "Microsoft.DataFactory/factories/linkedservices"
 }

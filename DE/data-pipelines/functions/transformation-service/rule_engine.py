@@ -1,3 +1,5 @@
+"""Hard-stop gates and deterministic credit decision/scoring rules from feature vectors."""
+
 from typing import Any, Dict
 
 from contracts import BureauHitStatus
@@ -74,6 +76,8 @@ class HardStopEvaluator:
 
 
 class DeterministicRuleEngine:
+    """Maps features + hit status to score band, tier, and approve/refer/decline."""
+
     def decide(
         self, features: Dict[str, Any], hard_stop: Dict[str, Any], hit_status: BureauHitStatus
     ) -> Dict[str, Any]:

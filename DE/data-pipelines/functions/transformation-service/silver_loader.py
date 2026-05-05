@@ -1,3 +1,5 @@
+"""Read silver training artifacts (parquet + JSON sidecars) from blob storage paths."""
+
 import io
 import json
 import os

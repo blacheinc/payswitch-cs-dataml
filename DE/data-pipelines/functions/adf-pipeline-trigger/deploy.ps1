@@ -3,25 +3,25 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ResourceGroupName = "blache-cdtscr-dev-data-rg",
+    [string]$ResourceGroupName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$FunctionAppName = "blache-cdtscr-dev-adfpt-y27jgavel2x32",
+    [string]$FunctionAppName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Location = "eastus2",
+    [string]$Location = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$KeyVaultName = "blachekvruhclai6km",
+    [string]$KeyVaultName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$AdfSubscriptionId = "411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf",
+    [string]$AdfSubscriptionId = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$AdfResourceGroup = "blache-cdtscr-dev-data-rg",
+    [string]$AdfResourceGroup = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$AdfFactoryName = "blache-cdtscr-dev-adf-y27jgavel2x32",
+    [string]$AdfFactoryName = "",
 
     [Parameter(Mandatory = $false)]
     [string]$AdfPipelineName = "pipeline-training-data-ingestion",
@@ -31,6 +31,15 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Resolve from env vars when parameters are omitted
+if (-not $ResourceGroupName) { $ResourceGroupName = $env:RESOURCE_GROUP_NAME }
+if (-not $FunctionAppName) { $FunctionAppName = $env:FUNCTION_APP_NAME }
+if (-not $Location) { $Location = $env:AZURE_LOCATION }
+if (-not $KeyVaultName) { $KeyVaultName = $env:KEY_VAULT_NAME }
+if (-not $AdfResourceGroup) { $AdfResourceGroup = $env:ADF_RESOURCE_GROUP }
+if (-not $AdfFactoryName) { $AdfFactoryName = $env:ADF_FACTORY_NAME }
+if (-not $AdfPipelineName) { $AdfPipelineName = $env:ADF_PIPELINE_NAME }
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "ADF Pipeline Trigger - deploy" -ForegroundColor Cyan
@@ -48,6 +57,29 @@ $account = az account show 2>$null
 if (-not $account) {
     Write-Host "Run az login first." -ForegroundColor Red
     exit 1
+}
+
+if (-not $AdfSubscriptionId) {
+    $AdfSubscriptionId = az account show --query id -o tsv
+}
+if (-not $AdfResourceGroup) {
+    $AdfResourceGroup = $ResourceGroupName
+}
+if (-not $Location) { $Location = "eastus2" }
+
+foreach ($pair in @(
+    @{ Name = "ResourceGroupName"; Value = $ResourceGroupName },
+    @{ Name = "FunctionAppName"; Value = $FunctionAppName },
+    @{ Name = "KeyVaultName"; Value = $KeyVaultName },
+    @{ Name = "AdfSubscriptionId"; Value = $AdfSubscriptionId },
+    @{ Name = "AdfResourceGroup"; Value = $AdfResourceGroup },
+    @{ Name = "AdfFactoryName"; Value = $AdfFactoryName },
+    @{ Name = "AdfPipelineName"; Value = $AdfPipelineName }
+)) {
+    if (-not $pair.Value) {
+        Write-Host "ERROR: Missing required value: $($pair.Name). Pass a parameter or set the matching environment variable." -ForegroundColor Red
+        exit 1
+    }
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

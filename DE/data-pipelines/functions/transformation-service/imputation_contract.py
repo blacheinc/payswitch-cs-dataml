@@ -1,3 +1,5 @@
+"""DE imputation policy merge: static bootstrap JSON, optional live contract blob, drift checks."""
+
 from __future__ import annotations
 
 import json

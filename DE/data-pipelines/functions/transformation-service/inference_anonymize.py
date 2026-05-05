@@ -1,4 +1,4 @@
-﻿"""Inference preprocessing with local anonymization components."""
+﻿"""Inference preprocessing: anonymize flattened rows using bundled PII detector/anonymizer."""
 
 from __future__ import annotations
 

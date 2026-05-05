@@ -17,16 +17,16 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ResourceGroupName = "blache-cdtscr-dev-data-rg",
+    [string]$ResourceGroupName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$FunctionAppName = "blache-cdtscr-dev-sms-y27jgavel2x32",
+    [string]$FunctionAppName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Location = "eastus2",
+    [string]$Location = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$KeyVaultName = "blachekvruhclai6km",
+    [string]$KeyVaultName = "",
 
     # ADLS Gen2 account name (no FQDN). Used for RBAC when -CreateResources is used.
     # If empty, the script tries Key Vault secret DataLakeStorageAccountName.
@@ -45,6 +45,12 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Resolve from env vars when parameters are omitted
+if (-not $ResourceGroupName) { $ResourceGroupName = $env:RESOURCE_GROUP_NAME }
+if (-not $FunctionAppName) { $FunctionAppName = $env:FUNCTION_APP_NAME }
+if (-not $Location) { $Location = $env:AZURE_LOCATION }
+if (-not $KeyVaultName) { $KeyVaultName = $env:KEY_VAULT_NAME }
 
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "Schema Mapping Service - deploy" -ForegroundColor Cyan
@@ -67,6 +73,18 @@ $account = az account show 2>$null
 if (-not $account) {
     Write-Host "Run az login first." -ForegroundColor Red
     exit 1
+}
+
+if (-not $Location) { $Location = "eastus2" }
+foreach ($pair in @(
+    @{ Name = "ResourceGroupName"; Value = $ResourceGroupName },
+    @{ Name = "FunctionAppName"; Value = $FunctionAppName },
+    @{ Name = "KeyVaultName"; Value = $KeyVaultName }
+)) {
+    if (-not $pair.Value) {
+        Write-Host "ERROR: Missing required value: $($pair.Name). Pass a parameter or set the matching environment variable." -ForegroundColor Red
+        exit 1
+    }
 }
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path

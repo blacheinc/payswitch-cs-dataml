@@ -1,0 +1,9 @@
+{
+  "__SUBSCRIPTION_ID__": "00000000-0000-0000-0000-000000000000",
+  "__RESOURCE_GROUP__": "rg-example-data",
+  "__ADF_FACTORY_NAME__": "adf-example-factory",
+  "__KEY_VAULT_NAME__": "kv-example",
+  "__BLOB_STORAGE_ACCOUNT__": "blobexample",
+  "__DATALAKE_STORAGE_ACCOUNT__": "adlsexample",
+  "__SERVICEBUS_NAMESPACE__": "sb-example-namespace"
+}

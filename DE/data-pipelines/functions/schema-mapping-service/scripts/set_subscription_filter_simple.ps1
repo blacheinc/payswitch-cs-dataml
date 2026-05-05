@@ -2,11 +2,29 @@
 # Uses Azure Portal REST API approach
 
 param(
-    [string]$ServiceBusNamespace = "blache-cdtscr-dev-sb-y27jgavel2x32",
-    [string]$ResourceGroup = "blache-cdtscr-dev-data-rg",
-    [string]$TopicName = "data-ingested",
-    [string]$SubscriptionName = "start-transformation"
+    [string]$ServiceBusNamespace = "",
+    [string]$ResourceGroup = "",
+    [string]$TopicName = "",
+    [string]$SubscriptionName = ""
 )
+
+if (-not $ServiceBusNamespace) { $ServiceBusNamespace = $env:SB_NAMESPACE_NAME }
+if (-not $ResourceGroup) { $ResourceGroup = $env:SB_RESOURCE_GROUP }
+if (-not $TopicName) { $TopicName = $env:SB_TOPIC_NAME }
+if (-not $SubscriptionName) { $SubscriptionName = $env:SB_SUBSCRIPTION_NAME }
+
+if (-not $TopicName) { $TopicName = "data-ingested" }
+if (-not $SubscriptionName) { $SubscriptionName = "start-transformation" }
+
+foreach ($pair in @(
+    @{ Name = "ServiceBusNamespace"; Value = $ServiceBusNamespace },
+    @{ Name = "ResourceGroup"; Value = $ResourceGroup }
+)) {
+    if (-not $pair.Value) {
+        Write-Host "[ERROR] Missing required value: $($pair.Name). Pass a parameter or set matching env var." -ForegroundColor Red
+        exit 1
+    }
+}
 
 Write-Host "`n=== Setting SQL Filter on Subscription ===" -ForegroundColor Cyan
 Write-Host "Namespace: $ServiceBusNamespace" -ForegroundColor White
