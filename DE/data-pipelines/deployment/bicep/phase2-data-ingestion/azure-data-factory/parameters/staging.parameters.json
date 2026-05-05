@@ -26,6 +26,15 @@
                        "metadataPostgresServerFqdn":  {
                                                           "value":  "REPLACE_STAGING_POSTGRES_FQDN"
                                                       },
+                       "metadataPostgresDatabaseName":  {
+                                                            "value":  "REPLACE_STAGING_POSTGRES_DATABASE"
+                                                        },
+                       "metadataPostgresUsername":  {
+                                                        "value":  "REPLACE_STAGING_POSTGRES_USERNAME"
+                                                    },
+                       "metadataPostgresPasswordSecretName":  {
+                                                                  "value":  "postgres-admin-password"
+                                                              },
                        "privateNetworkMode":  {
                                                   "value":  true
                                               },

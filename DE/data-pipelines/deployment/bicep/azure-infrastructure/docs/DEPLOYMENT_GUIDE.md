@@ -170,6 +170,10 @@ Continue in:
 - `DAY2_UPDATES.md` for `dev` or `prod`
 - `PRIVATE_DAY2_UPDATES.md` for `prod`
 
+Then run ADF completion/dependency checks:
+
+- `../phase2-data-ingestion/azure-data-factory/ADF_COMPLETION_RUNBOOK.md`
+
 ## 7) Application packaging / releases
 
 Function code deployment is handled per app (ZIP deploy, Core Tools publish, or CI/CD). This repository contains per-function deployment scripts under:

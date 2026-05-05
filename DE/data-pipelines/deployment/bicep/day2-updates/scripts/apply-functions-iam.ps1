@@ -11,10 +11,37 @@ param(
     [string]$KeyVaultName,
     [Parameter(Mandatory = $true)]
     [string]$KeyVaultResourceGroupName,
-    [string[]]$ExcludedFunctionAppNames = @("payswitch-creditscore-prod-file-checksum-func")
+    [string]$ServiceBusNamespaceName = "",
+    [string]$ServiceBusResourceGroupName = "",
+    [string[]]$ExcludedFunctionAppNames = @()
 )
 
 $ErrorActionPreference = "Stop"
+
+function Ensure-RoleAssignment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$PrincipalId,
+        [Parameter(Mandatory = $true)]
+        [string]$RoleName,
+        [Parameter(Mandatory = $true)]
+        [string]$Scope
+    )
+
+    $existing = az role assignment list `
+        --assignee-object-id $PrincipalId `
+        --scope $Scope `
+        --query "[?roleDefinitionName=='$RoleName'] | length(@)" `
+        -o tsv
+
+    if ($existing -eq "0") {
+        az role assignment create `
+            --assignee-object-id $PrincipalId `
+            --assignee-principal-type ServicePrincipal `
+            --role $RoleName `
+            --scope $Scope | Out-Null
+    }
+}
 
 $functionApps = $FunctionAppsJson | ConvertFrom-Json
 if ($null -eq $functionApps -or $functionApps.Count -eq 0) {
@@ -24,6 +51,10 @@ if ($null -eq $functionApps -or $functionApps.Count -eq 0) {
 $blobScope = az storage account show -g $StorageResourceGroupName -n $BlobStorageAccountName --query id -o tsv
 $dlsScope = az storage account show -g $StorageResourceGroupName -n $DataLakeStorageAccountName --query id -o tsv
 $kvScope = az keyvault show -g $KeyVaultResourceGroupName -n $KeyVaultName --query id -o tsv
+$sbScope = ""
+if (-not [string]::IsNullOrWhiteSpace($ServiceBusNamespaceName) -and -not [string]::IsNullOrWhiteSpace($ServiceBusResourceGroupName)) {
+    $sbScope = az servicebus namespace show -g $ServiceBusResourceGroupName -n $ServiceBusNamespaceName --query id -o tsv
+}
 
 if ([string]::IsNullOrWhiteSpace($blobScope) -or [string]::IsNullOrWhiteSpace($dlsScope) -or [string]::IsNullOrWhiteSpace($kvScope)) {
     throw "Could not resolve one or more target scopes (blob/datalake/keyvault)."
@@ -51,10 +82,14 @@ foreach ($app in $functionApps) {
 
     Write-Host "Applying roles for $name ($rg)..." -ForegroundColor Cyan
 
-    az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --role "Storage Blob Data Contributor" --scope $blobScope | Out-Null
-    az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --role "Storage Blob Data Contributor" --scope $dlsScope | Out-Null
-    az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --role "Key Vault Secrets User" --scope $kvScope | Out-Null
-    az role assignment create --assignee-object-id $principalId --assignee-principal-type ServicePrincipal --role "Contributor" --scope $kvScope | Out-Null
+    Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Storage Blob Data Contributor" -Scope $blobScope
+    Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Storage Blob Data Contributor" -Scope $dlsScope
+    Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Key Vault Secrets User" -Scope $kvScope
+    Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Contributor" -Scope $kvScope
+    if (-not [string]::IsNullOrWhiteSpace($sbScope)) {
+        Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Azure Service Bus Data Sender" -Scope $sbScope
+        Ensure-RoleAssignment -PrincipalId $principalId -RoleName "Azure Service Bus Data Receiver" -Scope $sbScope
+    }
 }
 
 Write-Host "Functions IAM assignment completed." -ForegroundColor Green

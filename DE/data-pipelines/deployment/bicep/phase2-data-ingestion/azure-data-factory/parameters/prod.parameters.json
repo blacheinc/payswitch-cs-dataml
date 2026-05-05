@@ -26,6 +26,15 @@
                        "metadataPostgresServerFqdn":  {
                                                           "value":  "payswitch-creditscore-prod-postgres-qautpja4gjia6.postgres.database.azure.com"
                                                       },
+                       "metadataPostgresDatabaseName":  {
+                                                            "value":  "credit_scoring"
+                                                        },
+                       "metadataPostgresUsername":  {
+                                                        "value":  "postgres_admin"
+                                                    },
+                       "metadataPostgresPasswordSecretName":  {
+                                                                  "value":  "postgres-admin-password"
+                                                              },
                        "privateNetworkMode":  {
                                                   "value":  true
                                               },

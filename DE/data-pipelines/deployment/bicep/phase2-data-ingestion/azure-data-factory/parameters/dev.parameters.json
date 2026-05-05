@@ -26,6 +26,15 @@
                        "metadataPostgresServerFqdn":  {
                                                           "value":  "blache-cdtscr-dev-postgres-y27jgavel2x32.postgres.database.azure.com"
                                                       },
+                       "metadataPostgresDatabaseName":  {
+                                                            "value":  "credit_scoring"
+                                                        },
+                       "metadataPostgresUsername":  {
+                                                        "value":  "postgres_admin"
+                                                    },
+                       "metadataPostgresPasswordSecretName":  {
+                                                                  "value":  "postgres-admin-password"
+                                                              },
                        "privateNetworkMode":  {
                                                   "value":  true
                                               },

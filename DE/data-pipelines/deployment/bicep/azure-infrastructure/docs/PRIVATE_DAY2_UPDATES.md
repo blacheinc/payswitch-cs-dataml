@@ -37,6 +37,8 @@ if ([string]::IsNullOrWhiteSpace($DEPLOYMENT_NAME_MAIN)) {
 cd $SCRIPTS
 . .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN
 
+$LOCATION = az deployment sub show --name $DEPLOYMENT_NAME_MAIN --query location -o tsv
+
 # Standardized alias (some Day 2 examples use this name)
 $RG_DATA = $DATA_RG
 
@@ -120,32 +122,15 @@ if ($HAS_KV_SECRETS_OFFICER -eq "0") {
 
 ## 5) Functions IAM updates
 
-This section discovers Function Apps by name, then applies storage/key vault RBAC expectations via `apply-functions-iam.ps1`.
+This section discovers Function Apps dynamically in `$DATA_RG`, then applies storage/key vault/service bus RBAC expectations via `apply-functions-iam.ps1`.
 
 ```powershell
-$FUNCTION_NAMES = @(
-  "payswitch-creditscore-prod-schema-mapping-func",
-  "payswitch-creditscore-prod-training-ingestion-func",
-  "payswitch-creditscore-prod-transformation-func",
-  "payswitch-creditscore-prod-adf-trigger-func",
-  "payswitch-creditscore-prod-file-checksum-func",
-  "payswitch-cs-credit-risk",
-  "payswitch-cs-customer-service",
-  "payswitch-cs-fraud-detection",
-  "payswitch-cs-income-verification",
-  "payswitch-cs-loan-amount",
-  "payswitch-cs-orchestrator"
+$FUNCTION_APPS = az functionapp list `
+  --query "[?resourceGroup=='$DATA_RG'].{name:name,resourceGroupName:resourceGroup}" `
+  -o json | ConvertFrom-Json
+$EXCLUDED_FUNCTIONS = @(
+  ($FUNCTION_APPS | Where-Object { $_.name -like "*file-checksum*" } | Select-Object -ExpandProperty name)
 )
-
-$FUNCTION_APPS = @()
-foreach ($name in $FUNCTION_NAMES) {
-  $rg = az functionapp list --query "[?name=='$name'].resourceGroup | [0]" -o tsv
-  if (-not [string]::IsNullOrWhiteSpace($rg)) {
-    $FUNCTION_APPS += @{ name = $name; resourceGroupName = $rg }
-  } else {
-    Write-Warning "Function app not found: $name"
-  }
-}
 
 $FUNCTION_APPS_JSON = $FUNCTION_APPS | ConvertTo-Json -Compress -Depth 5
 
@@ -157,10 +142,51 @@ cd "$DAY2\scripts"
   -StorageResourceGroupName $DATA_RG `
   -KeyVaultName $KEYVAULT_NAME `
   -KeyVaultResourceGroupName $SECURITY_RG `
-  -ExcludedFunctionAppNames @("payswitch-creditscore-prod-file-checksum-func")
+  -ServiceBusNamespaceName $SERVICEBUS_NAMESPACE `
+  -ServiceBusResourceGroupName $DATA_RG `
+  -ExcludedFunctionAppNames $EXCLUDED_FUNCTIONS
 ```
 
-## 6) Artifact manifests (reference layout)
+## 6) ADF IAM updates (system-assigned identity)
+
+Resolve ADF factory name and assign required roles on Storage, Key Vault, and Service Bus:
+
+```powershell
+$ADF_RG = $DATA_RG
+$ADF_NAME = az datafactory list -g $ADF_RG --query "[0].name" -o tsv
+if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "Could not resolve ADF factory in $ADF_RG." }
+
+az deployment sub create `
+  --name "day2-prod-adf-iam-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
+  --location $LOCATION `
+  --template-file "$DAY2\modules\adf-iam\main.update.bicep" `
+  --parameters "dataFactoryName=$ADF_NAME" `
+  --parameters "dataFactoryResourceGroupName=$ADF_RG" `
+  --parameters "blobStorageAccountName=$BLOB_STORAGE_ACCOUNT" `
+  --parameters "dataLakeStorageAccountName=$DATALAKE_STORAGE_ACCOUNT" `
+  --parameters "storageResourceGroupName=$DATA_RG" `
+  --parameters "keyVaultName=$KEYVAULT_NAME" `
+  --parameters "keyVaultResourceGroupName=$SECURITY_RG" `
+  --parameters "serviceBusNamespaceName=$SERVICEBUS_NAMESPACE" `
+  --parameters "serviceBusResourceGroupName=$DATA_RG"
+```
+
+Verify ADF role assignments:
+
+```powershell
+$ADF_PRINCIPAL_ID = az datafactory show -g $ADF_RG -n $ADF_NAME --query identity.principalId -o tsv
+$KV_ID = az keyvault show -g $SECURITY_RG -n $KEYVAULT_NAME --query id -o tsv
+$SB_ID = az servicebus namespace show -g $DATA_RG -n $SERVICEBUS_NAMESPACE --query id -o tsv
+$BLOB_ID = az storage account show -g $DATA_RG -n $BLOB_STORAGE_ACCOUNT --query id -o tsv
+$DLS_ID = az storage account show -g $DATA_RG -n $DATALAKE_STORAGE_ACCOUNT --query id -o tsv
+
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $KV_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $SB_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $BLOB_ID -o table
+az role assignment list --assignee-object-id $ADF_PRINCIPAL_ID --scope $DLS_ID -o table
+```
+
+## 7) Artifact manifests (reference layout)
 
 Operational artifacts are staged under:
 
@@ -168,7 +194,7 @@ Operational artifacts are staged under:
 
 Use this folder as the packaging source of truth for Day 2 operations that rely on checked-in manifests (not secret values).
 
-## 7) PostgreSQL artifact apply
+## 8) PostgreSQL artifact apply
 
 Precheck:
 

@@ -99,6 +99,8 @@ $postgres = ""
 $keyVault = ""
 $vnet = ""
 $postgresFqdn = ""
+$postgresDbName = ""
+$postgresAdminUser = ""
 
 if (-not [string]::IsNullOrWhiteSpace($SubscriptionDeploymentName)) {
     Write-Host "Using outputs from subscription deployment: $SubscriptionDeploymentName" -ForegroundColor Cyan
@@ -181,6 +183,17 @@ if ([string]::IsNullOrWhiteSpace($postgresFqdn) -and -not [string]::IsNullOrWhit
     $postgresFqdn = "$postgres.postgres.database.azure.com"
 }
 
+if (-not [string]::IsNullOrWhiteSpace($keyVault)) {
+    $kvDb = az keyvault secret show --vault-name $keyVault --name "PostgreSQLDatabase" --query value -o tsv 2>$null
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($kvDb)) {
+        $postgresDbName = $kvDb.Trim()
+    }
+    $kvUser = az keyvault secret show --vault-name $keyVault --name "PostgreSQLAdminUsername" --query value -o tsv 2>$null
+    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($kvUser)) {
+        $postgresAdminUser = $kvUser.Trim()
+    }
+}
+
 $functionsSubnetId = ""
 $privateEndpointsSubnetId = ""
 if (-not [string]::IsNullOrWhiteSpace($vnet)) {
@@ -209,6 +222,8 @@ Write-Host "  serviceBus: $serviceBus"
 Write-Host "  redis: $redis"
 Write-Host "  postgres: $postgres"
 Write-Host "  postgresFqdn: $postgresFqdn"
+Write-Host "  postgresDbName: $postgresDbName"
+Write-Host "  postgresAdminUser: $postgresAdminUser"
 Write-Host "  keyVault: $keyVault"
 Write-Host "  vnetId: $vnet"
 
@@ -230,6 +245,9 @@ Update-ParamFile -path (Join-Path $phase2 "azure-data-factory\parameters\$Enviro
     serviceBusNamespaceName      = $serviceBus
     sourceBlobStorageAccountName = $sourceStorage
     metadataPostgresServerFqdn   = $postgresFqdn
+    metadataPostgresDatabaseName = $postgresDbName
+    metadataPostgresUsername     = $postgresAdminUser
+    metadataPostgresPasswordSecretName = "postgres-admin-password"
     privateNetworkMode           = $true
 }
 
