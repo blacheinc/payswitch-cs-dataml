@@ -1,3 +1,5 @@
+"""Shared Pydantic models for anonymization pipeline stages (detection, analysis, results)."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional

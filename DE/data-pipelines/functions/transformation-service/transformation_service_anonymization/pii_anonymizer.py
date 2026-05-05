@@ -1,3 +1,5 @@
+"""Column-level anonymization (hash/token) driven by ``PIIDetectionResult``."""
+
 from __future__ import annotations
 
 import hashlib
@@ -9,6 +11,8 @@ from transformation_service_anonymization.system_interfaces import Anonymization
 
 
 class PIIAnonymizer:
+    """Hash or tokenize sensitive columns while preserving dataframe shape."""
+
     def __init__(self, salt: str = "") -> None:
         self.salt = salt
         self._token_counter: Dict[str, int] = {}

@@ -1,7 +1,11 @@
+"""Reads optional upstream quality scores embedded in request metadata when present."""
+
 from contracts import TransformRequest
 
 
 class System04QualityAdapter:
+    """Placeholder adapter for Systems 0–4 style quality scores on the payload."""
+
     def get_score(self, request: TransformRequest) -> float | None:
         # If upstream starts sending quality score in request metadata, consume it here.
         payload = request.xds_payload or {}

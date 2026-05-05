@@ -6,7 +6,7 @@ This script deploys AKS and Container Registry.
 Recommended usage (from repo root):
   .\credit-scoring\azure-infrastructure\scripts\deploy-aks.ps1 -Location eastus2 -NamingPrefix blache-creditscore-dev
 
-If you already ran the environment setup block from DEPLOYMENT_GUIDE_INDIVIDUAL_MODULES.md in the same PowerShell session,
+If you already ran the environment setup block from ..\docs\DEPLOYMENT_GUIDE.md in the same PowerShell session,
 you can omit most parameters and the script will reuse the existing variables.
 #>
 
@@ -92,13 +92,13 @@ function Fail($Message) {
 
 function Ensure-Value([string]$Name, $Value) {
     if ($null -eq $Value -or ($Value -is [string] -and [string]::IsNullOrWhiteSpace($Value))) {
-        Fail "$Name is not set. Run the environment setup section in DEPLOYMENT_GUIDE_INDIVIDUAL_MODULES.md OR pass -$Name explicitly."
+        Fail "$Name is not set. Run the environment setup section in ..\docs\DEPLOYMENT_GUIDE.md OR pass -$Name explicitly."
     }
 }
 
 # If RGs weren't set but naming prefix is known, derive them (matches guide convention)
 if ([string]::IsNullOrWhiteSpace($ResourceGroupNetworking) -and -not [string]::IsNullOrWhiteSpace($NamingPrefix)) {
-    # Match DEPLOYMENT_GUIDE_INDIVIDUAL_MODULES.md convention
+    # Match ..\docs\DEPLOYMENT_GUIDE.md naming convention
     $ResourceGroupNetworking = "$NamingPrefix-network-rg"
 }
 if ([string]::IsNullOrWhiteSpace($ResourceGroupCompute) -and -not [string]::IsNullOrWhiteSpace($NamingPrefix)) {

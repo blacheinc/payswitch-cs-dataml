@@ -42,7 +42,7 @@
       "value": false
     },
     "deployMlWorkspace": {
-      "value": false
+      "value": true
     },
     "deployJumpBox": {
       "value": true

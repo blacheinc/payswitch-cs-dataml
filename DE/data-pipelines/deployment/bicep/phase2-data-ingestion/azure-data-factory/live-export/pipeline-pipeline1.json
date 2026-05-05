@@ -1,4 +1,4 @@
-﻿{
+{
     "activities":  [
                        {
                            "additionalProperties":  null,
@@ -136,7 +136,7 @@
     "description":  null,
     "etag":  "93011c47-0000-0200-0000-6995865c0000",
     "folder":  null,
-    "id":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-data-rg/providers/Microsoft.DataFactory/factories/blache-cdtscr-dev-adf-y27jgavel2x32/pipelines/pipeline1",
+    "id":  "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/__RESOURCE_GROUP__/providers/Microsoft.DataFactory/factories/__ADF_FACTORY_NAME__/pipelines/pipeline1",
     "name":  "pipeline1",
     "parameters":  null,
     "policy":  {
@@ -144,7 +144,7 @@
                                              "duration":  null
                                          }
                },
-    "resourceGroup":  "blache-cdtscr-dev-data-rg",
+    "resourceGroup":  "__RESOURCE_GROUP__",
     "runDimensions":  null,
     "type":  "Microsoft.DataFactory/factories/pipelines",
     "variables":  {

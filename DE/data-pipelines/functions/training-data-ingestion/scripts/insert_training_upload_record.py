@@ -19,12 +19,8 @@ except ImportError:
 # Add parent directories to path
 CURRENT_DIR = Path(__file__).parent
 TRAINING_INGESTION_ROOT = CURRENT_DIR.parent
-FUNCTION_ROOT = TRAINING_INGESTION_ROOT.parent
-SCHEMA_MAPPING_ROOT = FUNCTION_ROOT / "schema-mapping-service"
 
 # Add paths for imports
-if str(SCHEMA_MAPPING_ROOT) not in sys.path:
-    sys.path.insert(0, str(SCHEMA_MAPPING_ROOT))
 if str(TRAINING_INGESTION_ROOT) not in sys.path:
     sys.path.insert(0, str(TRAINING_INGESTION_ROOT))
 
@@ -34,46 +30,12 @@ if HAS_DOTENV:
     if env_path.exists():
         load_dotenv(env_path)
 
-# Import utilities using importlib
-import importlib.util
-import types
-
-# ------------------------------------------------------------
-# Load shared utils and register unified 'utils' namespace
-# ------------------------------------------------------------
-
-# 1) Load KeyVaultReader
-kv_reader_path = os.path.join(SCHEMA_MAPPING_ROOT, 'utils', 'key_vault_reader.py')
-kv_spec = importlib.util.spec_from_file_location(
-    "utils.key_vault_reader", kv_reader_path
+from utils.training_key_vault_reader import (
+    TrainingKeyVaultReader as KeyVaultReader,
 )
-kv_module = importlib.util.module_from_spec(kv_spec)
-kv_spec.loader.exec_module(kv_module)
-KeyVaultReader = kv_module.KeyVaultReader
-KeyVaultError = kv_module.KeyVaultError
-
-# 2) Create / update 'utils' namespace so schema-mapping-service modules
-#    can import via `from utils.* import ...`
-if 'utils' not in sys.modules:
-    utils_pkg = types.ModuleType('utils')
-    utils_pkg.__path__ = [
-        os.path.join(SCHEMA_MAPPING_ROOT, 'utils'),
-        os.path.join(TRAINING_INGESTION_ROOT, 'utils'),
-    ]
-    utils_pkg.__name__ = 'utils'
-    sys.modules['utils'] = utils_pkg
-
-# Register submodules under utils.*
-sys.modules['utils.key_vault_reader'] = kv_module
-# Also expose as attributes on the utils package for convenience
-sys.modules['utils'].key_vault_reader = kv_module
-
-# 3) Load PostgresClient (it imports utils.key_vault_reader, so utils namespace must be set up first)
-postgres_client_path = os.path.join(SCHEMA_MAPPING_ROOT, 'schema_registry', 'postgres_client.py')
-postgres_spec = importlib.util.spec_from_file_location("postgres_client", postgres_client_path)
-postgres_module = importlib.util.module_from_spec(postgres_spec)
-postgres_spec.loader.exec_module(postgres_module)
-PostgresClient = postgres_module.PostgresClient
+from utils.training_postgres_client import (
+    TrainingPostgresClient as PostgresClient,
+)
 
 from sqlalchemy import text
 
@@ -215,7 +177,7 @@ def main():
     print("\n" + "=" * 60)
     print("✅ Script 2 Complete - Summary")
     print("=" * 60)
-    print("Use these values in Script 3 (send_test_ingestion_message.py):")
+    print("Use these values in Script 3 (send_test_ingestion_message_v2.py):")
     print(f"  TRAINING_UPLOAD_ID = {training_upload_id}")
     print(f"  DATA_SOURCE_ID = {data_source_id}")
     print(f"  FILE_FORMAT = json")

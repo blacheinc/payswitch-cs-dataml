@@ -31,12 +31,8 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 # Add parent directories to path
 CURRENT_DIR = Path(__file__).parent
 TRAINING_INGESTION_ROOT = CURRENT_DIR.parent
-FUNCTION_ROOT = TRAINING_INGESTION_ROOT.parent
-SCHEMA_MAPPING_ROOT = FUNCTION_ROOT / "schema-mapping-service"
 
 # Add paths for imports
-if str(SCHEMA_MAPPING_ROOT) not in sys.path:
-    sys.path.insert(0, str(SCHEMA_MAPPING_ROOT))
 if str(TRAINING_INGESTION_ROOT) not in sys.path:
     sys.path.insert(0, str(TRAINING_INGESTION_ROOT))
 
@@ -46,19 +42,10 @@ if HAS_DOTENV:
     if env_path.exists():
         load_dotenv(env_path)
 
-# Import KeyVaultReader
-import importlib.util
-
-kv_reader_path = SCHEMA_MAPPING_ROOT / "utils" / "key_vault_reader.py"
-if not kv_reader_path.exists():
-    print(f"❌ ERROR: KeyVaultReader not found at: {kv_reader_path}")
-    sys.exit(1)
-
-kv_spec = importlib.util.spec_from_file_location("key_vault_reader", str(kv_reader_path))
-kv_module = importlib.util.module_from_spec(kv_spec)
-kv_spec.loader.exec_module(kv_module)
-KeyVaultReader = kv_module.KeyVaultReader
-KeyVaultError = kv_module.KeyVaultError
+from utils.training_key_vault_reader import (
+    TrainingKeyVaultReader as KeyVaultReader,
+    TrainingKeyVaultError as KeyVaultError,
+)
 
 
 def main():

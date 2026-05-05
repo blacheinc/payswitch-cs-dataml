@@ -1,6 +1,7 @@
 param(
+    [Parameter(Mandatory = $true)]
     [ValidateSet("dev", "staging", "prod")]
-    [string]$Environment = "dev",
+    [string]$Environment,
     [string]$DataResourceGroup = "",
     [ValidateSet("premium", "consumption")]
     [string]$FunctionsTier = "premium",

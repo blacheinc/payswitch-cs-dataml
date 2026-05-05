@@ -21,12 +21,7 @@ if parent_dir not in sys.path:
 from utils.checksum_calculator import ChecksumCalculator
 from utils.storage_client import StorageClient
 from utils.training_uploads_client import TrainingUploadsClient
-
-# Import Service Bus Writer from schema-mapping-service
-schema_mapping_root = os.path.join(os.path.dirname(parent_dir), 'schema-mapping-service')
-if schema_mapping_root not in sys.path:
-    sys.path.insert(0, schema_mapping_root)
-from utils.service_bus_writer import ServiceBusWriter
+from utils.training_service_bus_writer import TrainingServiceBusWriter as ServiceBusWriter
 
 logger = logging.getLogger(__name__)
 

@@ -1,3 +1,5 @@
+"""XDS Product 45/49 parsing: extract bureau fields, merge histories, set hit status."""
+
 from typing import Any, Dict, List, Tuple
 
 from contracts import BureauHitStatus, TransformRequest
@@ -66,6 +68,7 @@ def thin_file_credit_overrides_from_49(report49: Dict[str, Any]) -> Dict[str, An
 
 
 class Product45Parser:
+    """Extract Product 45 (consumer full report) sections from nested or flat payloads."""
     def parse(self, report45: Dict[str, Any]) -> Dict[str, Any]:
         personal = report45.get("personalDetailsSummary", {}) or {}
         highest = report45.get("highestDelinquencyRating", {}) or {}
@@ -126,6 +129,7 @@ class Product45Parser:
 
 
 class Product49Parser:
+    """Extract Product 49 (mobile) report fields for thin-file and supplement paths."""
     def parse(self, report49: Dict[str, Any]) -> Dict[str, Any]:
         facility = report49.get("detailedFacilityInfo", []) or []
         summary = report49.get("creditAccountSummary", {}) or {}
@@ -152,6 +156,7 @@ class Product49Parser:
 
 
 class XdsParser:
+    """Facade: nested JSON, flat training rows, and hit/thin-file status from XDS payloads."""
     def __init__(self, p45: Product45Parser, p49: Product49Parser) -> None:
         self.p45 = p45
         self.p49 = p49

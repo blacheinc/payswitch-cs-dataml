@@ -4,7 +4,9 @@
 # ==================================================
 
 param(
-    [string]$Environment = "dev",
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("dev", "staging", "prod")]
+    [string]$Environment,
     [string]$OrgName = "blache",
     [string]$ProjectName = "creditscore",
     [switch]$Force

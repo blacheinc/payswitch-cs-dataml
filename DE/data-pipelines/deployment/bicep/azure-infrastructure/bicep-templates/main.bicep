@@ -52,11 +52,11 @@ param enableMultiRegion bool = false
 @description('Enable Azure OpenAI Service')
 param enableOpenAI bool = true
 
-@description('Deploy AKS cluster (omit in prod v1 until Kubernetes workloads are in scope)')
+@description('Deploy AKS cluster (optional; off by default in prod unless overridden)')
 param deployAks bool = environment != 'prod'
 
-@description('Deploy Azure Machine Learning workspace module (omit in prod v1)')
-param deployMlWorkspace bool = environment != 'prod'
+@description('Deploy Azure Machine Learning workspace module (defaults on for all environments)')
+param deployMlWorkspace bool = true
 
 @description('Deploy Azure Bastion + a private-subnet Windows jump VM for PE/DNS/RBAC troubleshooting')
 param deployJumpBox bool = environment == 'prod'

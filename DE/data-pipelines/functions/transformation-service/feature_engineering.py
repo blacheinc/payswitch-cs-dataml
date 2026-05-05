@@ -1,3 +1,5 @@
+"""Build normalized feature dicts, targets, and metadata from parsed XDS extraction (v1)."""
+
 from datetime import datetime, timezone
 from typing import Any, Dict, Tuple
 
@@ -7,6 +9,8 @@ from contracts import BureauHitStatus
 
 
 class DeterministicFeatureBuilder:
+    """Derives lender-facing features from bureau extraction plus imputation policy."""
+
     FEATURE_NAMES = (
         "highest_delinquency_rating",
         "months_on_time_24m",

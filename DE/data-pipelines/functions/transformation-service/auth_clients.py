@@ -1,3 +1,5 @@
+"""Factory helpers for BlobServiceClient and ServiceBusClient from env (SAS or Azure AD)."""
+
 from __future__ import annotations
 
 import os

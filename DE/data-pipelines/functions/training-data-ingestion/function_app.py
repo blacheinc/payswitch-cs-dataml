@@ -38,17 +38,11 @@ for logger_name in azure_loggers:
 # Note: Path setup is deferred to avoid import-time errors during function discovery
 CURRENT_DIR = Path(__file__).parent
 FUNCTION_ROOT = CURRENT_DIR.parent
-SCHEMA_MAPPING_ROOT = FUNCTION_ROOT / "schema-mapping-service"
 
 # Add current directory (training-data-ingestion) to path - this is where utils/ lives
 # This MUST be added before any imports from scripts/ that import from utils/
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
-
-# Add schema-mapping-service to path if it exists (may not exist in Azure)
-# This will be checked again at runtime in run_training_ingestion.py
-if SCHEMA_MAPPING_ROOT.exists() and str(SCHEMA_MAPPING_ROOT) not in sys.path:
-    sys.path.insert(0, str(SCHEMA_MAPPING_ROOT))
 
 # ============================================================
 # Azure Function Entry Point

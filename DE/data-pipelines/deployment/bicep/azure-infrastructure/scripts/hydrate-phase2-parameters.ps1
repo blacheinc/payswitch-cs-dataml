@@ -1,6 +1,7 @@
 param(
+    [Parameter(Mandatory = $true)]
     [ValidateSet("dev", "staging", "prod")]
-    [string]$Environment = "dev",
+    [string]$Environment,
     [string]$SubscriptionId = "",
     # After main.bicep: pass the same name used in az deployment sub create --name (recommended)
     [string]$SubscriptionDeploymentName = "",

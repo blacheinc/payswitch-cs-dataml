@@ -2,16 +2,25 @@
 
 param(
     [Parameter(Mandatory = $false)]
-    [string]$ResourceGroupName = "blache-cdtscr-dev-data-rg",
+    [string]$ResourceGroupName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$FunctionAppName = "blache-cdtscr-dev-transform-y27jgavel2x32",
+    [string]$FunctionAppName = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$Location = "eastus2"
+    [string]$Location = ""
 )
 
 $ErrorActionPreference = "Stop"
+$ResourceGroupName = if ($ResourceGroupName) { $ResourceGroupName } else { $env:RESOURCE_GROUP_NAME }
+$FunctionAppName = if ($FunctionAppName) { $FunctionAppName } else { $env:FUNCTION_APP_NAME }
+$Location = if ($Location) { $Location } else { $env:AZURE_LOCATION }
+if (-not $Location) { $Location = "eastus2" }
+
+if (-not $FunctionAppName) {
+    Write-Host "ERROR: Missing FunctionAppName. Pass -FunctionAppName or set FUNCTION_APP_NAME." -ForegroundColor Red
+    exit 1
+}
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $scriptDir
 

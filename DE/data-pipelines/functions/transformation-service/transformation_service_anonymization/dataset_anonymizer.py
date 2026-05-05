@@ -1,3 +1,5 @@
+"""Applies PII detection + anonymization to a DataFrame for inference exports."""
+
 from __future__ import annotations
 
 from typing import Any, Dict, Optional

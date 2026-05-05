@@ -1,4 +1,11 @@
-﻿"""Transformation Service - deterministic XDS transformation entrypoints."""
+﻿"""
+Transformation service — Azure Functions host for XDS training and inference.
+
+Exposes HTTP routes under ``/api/transform/...`` and a Service Bus topic trigger for
+``schema-mapping-service`` / ``mapping-complete`` (silver handoff). Core logic lives in
+``orchestrator``, ``output_delivery``, and related modules; this file wires routes, batch
+JSONL, and Service Bus progress events.
+"""
 
 import json
 import logging
@@ -53,6 +60,7 @@ FLATTENED_XDS_SCHEMA_V1_REQUIRED_COLUMNS = (
 
 
 def _build_orchestrator() -> TransformationOrchestrator:
+    """Construct the default parser + feature + rules pipeline for a single request."""
     return TransformationOrchestrator(
         parser=XdsParser(Product45Parser(), Product49Parser()),
         feature_builder=DeterministicFeatureBuilder(),
@@ -65,6 +73,7 @@ def _build_orchestrator() -> TransformationOrchestrator:
 
 
 def _emit_transformation_progress(payload: Dict[str, Any], status: str, subscription: str) -> None:
+    """Publish a non-fatal progress notification to Service Bus when configured."""
     try:
         publish_transformation_progress(payload=payload, status=status, subscription=subscription)
     except Exception as exc:
@@ -77,6 +86,10 @@ def _emit_transformation_progress(payload: Dict[str, Any], status: str, subscrip
 
 
 def _transform_payload(data: Dict[str, Any], publish_outputs: bool = True) -> Dict[str, Any]:
+    """
+    Run single-row training or inference transform, optionally write gold parquet and publish
+    handoff messages (backend + ML topics).
+    """
     request = TransformRequest.from_dict(data)
     orchestrator = _build_orchestrator()
     result = orchestrator.run(request)
@@ -296,6 +309,10 @@ def _ensure_inference_publish_config() -> None:
 
 
 def _transform_training_batch_from_silver(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Training batch path after schema-mapping: read flattened silver parquet + sidecar JSON,
+    transform each row, write curated feature/metadata parquet pair, publish ML/backend events.
+    """
     silver_path = str(data.get("anonymized_silver_path") or "")
     sidecar_path = str(data.get("analysis_context_path") or "")
     if not silver_path or not sidecar_path:
@@ -915,6 +932,7 @@ def _validate_mapping_complete_payload(payload: Dict[str, Any]) -> Dict[str, Any
 
 @app.route(route="transform/inference", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
 def transform_inference(req: func.HttpRequest) -> func.HttpResponse:
+    """HTTP: single-applicant inference (JSON body) — features, hard-stop, ML handoff."""
     try:
         _ensure_inference_publish_config()
         payload = req.get_json()
@@ -1053,6 +1071,7 @@ def transform_inference_batch_submit(req: func.HttpRequest) -> func.HttpResponse
 
 @app.route(route="transform/training", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
 def transform_training(req: func.HttpRequest) -> func.HttpResponse:
+    """HTTP: single training transform — gold parquet + backend/ML publishing when enabled."""
     try:
         payload = req.get_json()
         payload["flow_type"] = "training"
