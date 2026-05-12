@@ -2,6 +2,12 @@
 
 **Purpose:** PowerShell (.ps1) versions of all test scripts for Windows users.
 
+**Paths:** All `cd …` examples assume your current directory is the **repository root** (the folder that contains `data-pipelines/`).
+
+**Destroy-only:** See **[../../docs/TEARDOWN.md](../../docs/TEARDOWN.md)** for `destroy.ps1` / `destroy.sh` without the test-and-teardown flow.
+
+**Naming:** Use your real **`<environment>`** and **`<org>-<project>-<environment>`** (same as `main.*.parameters.json`). See **[../../docs/OPERATOR_CONFIGURATION.md](../../docs/OPERATOR_CONFIGURATION.md)**.
+
 ## Overview
 
 This directory contains **PowerShell (.ps1)** versions of all test scripts, designed to work natively on Windows without requiring WSL, Git Bash, or bash.
@@ -56,29 +62,29 @@ This directory contains **PowerShell (.ps1)** versions of all test scripts, desi
 ### Option 1: Test Single Phase
 
 ```powershell
-cd credit-scoring\azure-infrastructure\scripts\testing
+cd data-pipelines\deployment\bicep\azure-infrastructure\scripts\testing
 
 # Test Phase 0 (Core Infrastructure)
-.\test-phase-0.ps1 -Environment dev -NamingPrefix blache-dev
+.\test-phase-0.ps1 -Environment '<environment>' -NamingPrefix '<org>-<project>-<environment>'
 
 # Test Phase 1 (Data Layer)
-.\test-phase-1.ps1 -Environment dev -NamingPrefix blache-dev
+.\test-phase-1.ps1 -Environment '<environment>' -NamingPrefix '<org>-<project>-<environment>'
 
 # Test Phase 2 (Data Ingestion)
-.\test-phase-2.ps1 -Environment dev -NamingPrefix blache-dev
+.\test-phase-2.ps1 -Environment '<environment>' -NamingPrefix '<org>-<project>-<environment>'
 ```
 
 **Parameters:**
 - `-Environment`: Environment name (**required**; `dev`, `staging`, or `prod`)
-- `-NamingPrefix`: Naming prefix (optional; defaults to `blache-{Environment}`)
+- `-NamingPrefix`: Naming prefix (optional if `$env:NAMING_PREFIX` or both `$env:ORG_NAME` and `$env:PROJECT_NAME` are set)
 
 ### Option 2: Test All Phases
 
 ```powershell
-cd credit-scoring\azure-infrastructure\scripts\testing
+cd data-pipelines\deployment\bicep\azure-infrastructure\scripts\testing
 
 # Run all phase tests
-.\test-all-phases.ps1 -Environment dev -NamingPrefix blache-dev
+.\test-all-phases.ps1 -Environment '<environment>' -NamingPrefix '<org>-<project>-<environment>'
 ```
 
 ### Option 3: Deploy → Test → Teardown
@@ -89,19 +95,19 @@ cd credit-scoring\azure-infrastructure\scripts\testing
 2. **Deploy manually** using Azure CLI, then run tests
 
 ```powershell
-cd credit-scoring\azure-infrastructure\scripts\testing
+cd data-pipelines\deployment\bicep\azure-infrastructure\scripts\testing
 
 # Deploy Phase 0, test it, then tear it down
-.\test-and-teardown.ps1 -Environment dev -Phase 0 -NamingPrefix blache-dev -Teardown yes
+.\test-and-teardown.ps1 -Environment '<environment>' -Phase 0 -NamingPrefix '<org>-<project>-<environment>' -Teardown yes
 
 # Deploy Phase 1, test it, keep resources (no teardown)
-.\test-and-teardown.ps1 -Environment dev -Phase 1 -NamingPrefix blache-dev -Teardown no
+.\test-and-teardown.ps1 -Environment '<environment>' -Phase 1 -NamingPrefix '<org>-<project>-<environment>' -Teardown no
 ```
 
 **Parameters:**
 - `-Environment`: Environment name (**required**; `dev`, `staging`, or `prod`)
 - `-Phase`: Phase number (0-5, default: `0`)
-- `-NamingPrefix`: Naming prefix (optional; defaults to `blache-{Environment}`)
+- `-NamingPrefix`: Naming prefix (optional if `$env:NAMING_PREFIX` or both `$env:ORG_NAME` and `$env:PROJECT_NAME` are set)
 - `-Teardown`: Teardown after tests (`yes` or `no`, default: `yes`)
 
 ## Manual Deployment (if bash not available)
@@ -109,7 +115,7 @@ cd credit-scoring\azure-infrastructure\scripts\testing
 If you don't have bash/WSL/Git Bash, deploy manually:
 
 ```powershell
-cd credit-scoring\azure-infrastructure\bicep-templates
+cd data-pipelines\deployment\bicep\azure-infrastructure\bicep-templates
 
 # Validate deployment
 az deployment sub validate `
@@ -131,7 +137,7 @@ Then run tests:
 
 ```powershell
 cd ..\scripts\testing
-.\test-phase-0.ps1 -Environment dev -NamingPrefix blache-dev
+.\test-phase-0.ps1 -Environment '<environment>' -NamingPrefix '<org>-<project>-<environment>'
 ```
 
 ## Test Results
@@ -154,7 +160,7 @@ Each test script outputs:
 ========================================
 Phase 0 Infrastructure Tests
 Environment: dev
-Naming Prefix: blache-dev
+Naming Prefix: <org>-<project>-<environment>
 ========================================
 
 === Resource Groups ===
@@ -218,8 +224,8 @@ az account show  # Verify
 
 **Solution:**
 1. Verify deployment completed successfully
-2. Check naming prefix: `az group list --query "[?contains(name, 'blache-dev')].name"`
-3. Verify resource exists: `az <service> list --query "[?contains(name, 'blache-dev')].name"`
+2. Check naming prefix: `az group list --query "[?contains(name, '<org>-<project>-<environment>')].name"`
+3. Verify resource exists: `az <service> list --query "[?contains(name, '<org>-<project>-<environment>')].name"`
 
 ### Test-and-Teardown: "bash not found"
 

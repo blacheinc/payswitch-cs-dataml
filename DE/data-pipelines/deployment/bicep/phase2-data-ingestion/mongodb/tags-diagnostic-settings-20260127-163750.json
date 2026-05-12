@@ -5,7 +5,7 @@
                        "tags":  {
                                     "value":  {
                                                   "ManagedBy":  "Bicep",
-                                                  "Owner":  "Blache-Ltd",
+                                                  "Owner":  "OVERRIDE-owner-or-org-tag",
                                                   "Environment":  "dev",
                                                   "CostCenter":  "FinTech-Operations",
                                                   "DeployedBy":  "Data-Engineering-Team",

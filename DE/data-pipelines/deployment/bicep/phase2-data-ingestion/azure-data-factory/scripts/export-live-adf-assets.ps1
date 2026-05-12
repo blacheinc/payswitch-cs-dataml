@@ -1,10 +1,16 @@
 param(
-    [string]$ResourceGroup = "blache-cdtscr-dev-data-rg",
-    [string]$FactoryName = "blache-cdtscr-dev-adf-y27jgavel2x32",
+    # Example resource group: <namingPrefix>-data-rg (see hydrate-phase2-parameters.ps1 output)
+    [string]$ResourceGroup = "",
+    # Example factory: <namingPrefix>-adf-<suffix>
+    [string]$FactoryName = "",
     [string]$OutputDir = "..\live-export"
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($ResourceGroup) -or [string]::IsNullOrWhiteSpace($FactoryName)) {
+    throw "Set -ResourceGroup and -FactoryName (defaults are empty in the repo; see comments above each parameter)."
+}
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 

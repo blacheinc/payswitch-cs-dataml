@@ -6,13 +6,18 @@
   cd $SCRIPTS
   . .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN
 
-  Uses $MainBlobStorageAccountName (GPv2 blob), $MainDataLakeStorageAccountName (ADLS Gen2), $MainRgData, etc.
+  Uses $MainBlobStorageAccountName (GPv2 blob), $MainFunctionsStorageAccountName (dedicated Functions runtime GPv2),
+  $MainDataLakeStorageAccountName (ADLS Gen2), $MainRgData,
+
+  Use -ResolveDataRgResources after Phase 2 is deployed to populate Service Bus, ADF, and Function App names
+  from Azure (SERVICEBUS_NAMESPACE, ADF_NAME, ADF_RG, FUNCTION_APP_NAMES).
 #>
 param(
     [Parameter(Mandatory = $true)]
     [string]$DeploymentName,
     [string]$SubscriptionId = "",
-    [switch]$RequireCoreValues
+    [switch]$RequireCoreValues,
+    [switch]$ResolveDataRgResources
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +56,7 @@ $global:MainBastionName = Get-ArmOutput "bastionName"
 $global:MainJumpVmName = Get-ArmOutput "jumpVmName"
 $global:MainAksClusterName = Get-ArmOutput "aksClusterName"
 $global:MainMlWorkspaceName = Get-ArmOutput "mlWorkspaceName"
+$global:MainFunctionsStorageAccountName = Get-ArmOutput "functionsStorageAccountName"
 
 $rgObj = $raw.resourceGroupNames
 if ($null -ne $rgObj -and $null -ne $rgObj.value) {
@@ -85,9 +91,43 @@ if (-not [string]::IsNullOrWhiteSpace($global:MainVnetId)) {
 $global:DATA_RG = $global:MainRgData
 $global:SECURITY_RG = $global:MainRgSecurity
 $global:NETWORK_RG = $global:MainRgNetworking
+$global:ML_RG = $global:MainRgMl
+$global:KEYVAULT_NAME = $global:MainKeyVaultName
 $global:VNET_ID = $global:MainVnetId
 $global:FUNCTIONS_SUBNET_ID = $global:MainFunctionsSubnetId
 $global:PRIVATE_ENDPOINTS_SUBNET_ID = $global:MainPrivateEndpointsSubnetId
+
+if ($ResolveDataRgResources) {
+    $global:SERVICEBUS_NAMESPACE = ""
+    $global:ADF_NAME = ""
+    $global:ADF_RG = ""
+    $global:FUNCTION_APP_NAMES = @()
+
+    if ([string]::IsNullOrWhiteSpace($global:DATA_RG)) {
+        Write-Warning "ResolveDataRgResources skipped: DATA_RG is empty (main deployment outputs missing resourceGroupNames.data)."
+    }
+    else {
+        $drg = $global:DATA_RG.Trim()
+        $global:ADF_RG = $drg
+
+        $sbOut = az servicebus namespace list -g $drg --query "[0].name" -o tsv 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($sbOut)) {
+            $global:SERVICEBUS_NAMESPACE = $sbOut.Trim()
+        }
+
+        $adfOut = az datafactory list -g $drg --query "[0].name" -o tsv 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($adfOut)) {
+            $global:ADF_NAME = $adfOut.Trim()
+        }
+
+        $faOut = az functionapp list -g $drg --query "[].name" -o tsv 2>$null
+        if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($faOut)) {
+            $global:FUNCTION_APP_NAMES = @(
+                $faOut -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+            )
+        }
+    }
+}
 
 $global:VNET_NAME = ""
 if (-not [string]::IsNullOrWhiteSpace($global:VNET_ID)) {
@@ -113,4 +153,8 @@ if ($RequireCoreValues) {
     Assert-Set "MainDataLakeStorageAccountName" $global:MainDataLakeStorageAccountName
 }
 
-Write-Host "Loaded outputs from deployment '$DeploymentName' (Main* globals + DATA_RG/SECURITY_RG/NETWORK_RG aliases)." -ForegroundColor Green
+$msg = "Loaded outputs from deployment '$DeploymentName' (Main* globals + DATA_RG/SECURITY_RG/NETWORK_RG/ML_RG + KEYVAULT_NAME)."
+if ($ResolveDataRgResources) {
+    $msg += " Resolved data RG resources: SERVICEBUS_NAMESPACE, ADF_NAME/ADF_RG, FUNCTION_APP_NAMES (when present in Azure)."
+}
+Write-Host $msg -ForegroundColor Green

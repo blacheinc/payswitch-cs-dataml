@@ -6,7 +6,7 @@
       "value": "eastus2"
     },
     "namingPrefix": {
-      "value": "OVERRIDE-org-project-prod"
+      "value": "OVERRIDE-org-project-staging"
     },
     "functionsStorageAccountName": {
       "value": "REPLACE_FUNCTIONS_RUNTIME_STORAGE_ACCOUNT_NAME"
@@ -19,7 +19,7 @@
     },
     "tags": {
       "value": {
-        "Environment": "prod",
+        "Environment": "staging",
         "ManagedBy": "Bicep",
         "Project": "changeme-project-label"
       }

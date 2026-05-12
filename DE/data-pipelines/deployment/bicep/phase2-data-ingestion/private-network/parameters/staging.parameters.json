@@ -6,7 +6,7 @@
             "value": "eastus2"
         },
         "namingPrefix": {
-            "value": "blache-cdtscr-staging"
+            "value": "OVERRIDE-org-project-staging"
         },
         "vnetId": {
             "value": "REPLACE_STAGING_VNET_ID"
@@ -15,10 +15,10 @@
             "value": "REPLACE_STAGING_PRIVATE_ENDPOINT_SUBNET_ID"
         },
         "dataResourceGroupName": {
-            "value": "blache-cdtscr-staging-data-rg"
+            "value": "OVERRIDE-org-project-staging-data-rg"
         },
         "securityResourceGroupName": {
-            "value": "blache-cdtscr-staging-security-rg"
+            "value": "OVERRIDE-org-project-staging-security-rg"
         },
         "storageAccountName": {
             "value": "REPLACE_STAGING_STORAGE"

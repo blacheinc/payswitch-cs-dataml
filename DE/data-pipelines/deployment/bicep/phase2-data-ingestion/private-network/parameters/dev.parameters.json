@@ -6,37 +6,37 @@
             "value": "eastus2"
         },
         "namingPrefix": {
-            "value": "blache-cdtscr-dev"
+            "value": "OVERRIDE-org-project-dev"
         },
         "vnetId": {
-            "value": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet"
+            "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-dev-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-dev-vnet"
         },
         "privateEndpointsSubnetId": {
-            "value": "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet/subnets/private-endpoints-subnet"
+            "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-dev-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-dev-vnet/subnets/private-endpoints-subnet"
         },
         "dataResourceGroupName": {
-            "value": "blache-cdtscr-dev-data-rg"
+            "value": "OVERRIDE-org-project-dev-data-rg"
         },
         "securityResourceGroupName": {
-            "value": "blache-cdtscr-dev-security-rg"
+            "value": "OVERRIDE-org-project-dev-security-rg"
         },
         "storageAccountName": {
-            "value": "blachesty27jgavel2x32"
+            "value": "REPLACE_BLOB_STORAGE_ACCOUNT_NAME"
         },
         "dataLakeStorageAccountName": {
-            "value": "blachedly27jgavel2x32"
+            "value": "REPLACE_DATALAKE_STORAGE_ACCOUNT_NAME"
         },
         "serviceBusNamespaceName": {
-            "value": "blache-cdtscr-dev-sb-y27jgavel2x32"
+            "value": "REPLACE_SERVICE_BUS_NAMESPACE_NAME"
         },
         "redisName": {
-            "value": "blache-cdtscr-dev-redis-y27jgavel2x32"
+            "value": "REPLACE_REDIS_NAME"
         },
         "postgresServerName": {
-            "value": "blache-cdtscr-dev-postgres-y27jgavel2x32"
+            "value": "REPLACE_POSTGRES_SERVER_NAME"
         },
         "keyVaultName": {
-            "value": "blachekvruhclai6km"
+            "value": "REPLACE_KEY_VAULT_NAME"
         },
         "tags": {
             "value": {

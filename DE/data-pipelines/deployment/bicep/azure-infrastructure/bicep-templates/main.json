@@ -5,27 +5,32 @@
     "_generator": {
       "name": "bicep",
       "version": "0.42.1.51946",
-      "templateHash": "2999341887286842675"
+      "templateHash": "12676964311177177757"
     }
   },
   "parameters": {
     "environment": {
       "type": "string",
-      "defaultValue": "dev",
       "allowedValues": [
         "dev",
         "staging",
         "prod"
       ],
       "metadata": {
-        "description": "Environment name (dev, staging, prod)"
+        "description": "Environment name (dev, staging, prod). Must match your parameter file."
       }
     },
     "primaryLocation": {
       "type": "string",
-      "defaultValue": "eastus",
       "metadata": {
-        "description": "Primary Azure region for deployment"
+        "description": "Primary Azure region for all resource groups and modules (must match subscription deployment --location and Phase 2 parameter `location`)."
+      }
+    },
+    "privateNetworkMode": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "false = normal operator posture (Key Vault network Allow, relaxed data-layer networking). true = private posture (see PRIVATE_DEPLOYMENT_GUIDE.md). Also set Phase 2 JSON privateNetworkMode when using private stack."
       }
     },
     "secondaryLocation": {
@@ -37,29 +42,20 @@
     },
     "projectName": {
       "type": "string",
-      "defaultValue": "creditscore",
       "metadata": {
-        "description": "Project name prefix for resource naming"
+        "description": "Project name prefix for resource naming (set in your parameter file; no default in template)."
       }
     },
     "orgName": {
       "type": "string",
-      "defaultValue": "payswitch",
       "metadata": {
-        "description": "Organization/Company name"
+        "description": "Organization / company short name for resource naming (set in your parameter file; no default in template)."
       }
     },
     "tags": {
       "type": "object",
-      "defaultValue": {
-        "Project": "Credit-Scoring-Agentic-AI",
-        "Environment": "[parameters('environment')]",
-        "ManagedBy": "Bicep",
-        "Owner": "PaySwitch",
-        "CostCenter": "FinTech-Operations"
-      },
       "metadata": {
-        "description": "Tags to apply to all resources"
+        "description": "Tags to apply to all resources. Supply the full object from your parameter file (no template default)."
       }
     },
     "adminEmail": {
@@ -269,7 +265,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "12119241603708479624"
+              "templateHash": "601737180664419595"
             }
           },
           "parameters": {
@@ -637,6 +633,22 @@
                       "destinationAddressPrefix": "*",
                       "access": "Allow",
                       "priority": 110,
+                      "direction": "Outbound"
+                    }
+                  },
+                  {
+                    "name": "AllowOutboundAzureStorage",
+                    "properties": {
+                      "protocol": "Tcp",
+                      "sourcePortRange": "*",
+                      "destinationPortRanges": [
+                        "443",
+                        "445"
+                      ],
+                      "sourceAddressPrefix": "*",
+                      "destinationAddressPrefix": "Storage",
+                      "access": "Allow",
+                      "priority": 120,
                       "direction": "Outbound"
                     }
                   },
@@ -1041,6 +1053,9 @@
           "adminEmail": {
             "value": "[parameters('adminEmail')]"
           },
+          "privateNetworkMode": {
+            "value": "[parameters('privateNetworkMode')]"
+          },
           "tags": {
             "value": "[parameters('tags')]"
           }
@@ -1052,7 +1067,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "3644469483029887110"
+              "templateHash": "8221917562259446282"
             }
           },
           "parameters": {
@@ -1092,7 +1107,7 @@
               "type": "bool",
               "defaultValue": false,
               "metadata": {
-                "description": "Enable private networking posture (disable public Key Vault access)"
+                "description": "Enable private networking posture: deny-by-default Key Vault ACL, disable public KV access, and align data-services networking (storage / Postgres / Redis). When false, Key Vault uses Allow for normal workstation CLI + RBAC."
               }
             },
             "tags": {
@@ -1106,7 +1121,8 @@
             "orgName": "[split(parameters('namingPrefix'), '-')[0]]",
             "uniqueHash": "[substring(uniqueString(resourceGroup().id), 0, 10)]",
             "keyVaultName": "[format('{0}kv{1}', variables('orgName'), variables('uniqueHash'))]",
-            "managedIdentityName": "[format('{0}-identity', parameters('namingPrefix'))]"
+            "managedIdentityName": "[format('{0}-identity', parameters('namingPrefix'))]",
+            "keyVaultNetworkDefaultAction": "[if(parameters('privateNetworkMode'), 'Deny', 'Allow')]"
           },
           "resources": [
             {
@@ -1137,7 +1153,7 @@
                 "enableRbacAuthorization": true,
                 "networkAcls": {
                   "bypass": "AzureServices",
-                  "defaultAction": "Deny",
+                  "defaultAction": "[variables('keyVaultNetworkDefaultAction')]",
                   "ipRules": [],
                   "virtualNetworkRules": []
                 },
@@ -1608,6 +1624,12 @@
           "subnetId": {
             "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.dataSubnetId.value]"
           },
+          "privateNetworkMode": {
+            "value": "[parameters('privateNetworkMode')]"
+          },
+          "environment": "[if(parameters('privateNetworkMode'), createObject('value', 'production'), createObject('value', 'dev'))]",
+          "vnetId": "[if(parameters('privateNetworkMode'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.vnetId.value), createObject('value', ''))]",
+          "mlSubnetId": "[if(parameters('privateNetworkMode'), createObject('value', reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').networking), 'Microsoft.Resources/deployments', 'networking-deployment'), '2025-04-01').outputs.mlSubnetId.value), createObject('value', ''))]",
           "tags": {
             "value": "[parameters('tags')]"
           }
@@ -1619,7 +1641,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.42.1.51946",
-              "templateHash": "15262012129001136635"
+              "templateHash": "10500579046868991582"
             }
           },
           "parameters": {
@@ -1726,7 +1748,8 @@
             "postgresPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
             "redisPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
             "storageDefaultAction": "[if(variables('isProduction'), 'Deny', 'Allow')]",
-            "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]"
+            "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]",
+            "functionsStorageAccountName": "[format('{0}fn{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id, 'functions-runtime'), 0, 13))]"
           },
           "resources": [
             {
@@ -1812,6 +1835,39 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
               ]
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2023-01-01",
+              "name": "[variables('functionsStorageAccountName')]",
+              "location": "[parameters('location')]",
+              "tags": "[union(parameters('tags'), createObject('Purpose', 'functions-runtime'))]",
+              "sku": {
+                "name": "Standard_LRS"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "accessTier": "Hot",
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true,
+                "allowBlobPublicAccess": false,
+                "networkAcls": {
+                  "bypass": "AzureServices",
+                  "defaultAction": "[variables('storageDefaultAction')]",
+                  "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+                },
+                "encryption": {
+                  "services": {
+                    "blob": {
+                      "enabled": true
+                    },
+                    "file": {
+                      "enabled": true
+                    }
+                  },
+                  "keySource": "Microsoft.Storage"
+                }
+              }
             },
             {
               "type": "Microsoft.Storage/storageAccounts",
@@ -2019,6 +2075,14 @@
             "storageAccountName": {
               "type": "string",
               "value": "[variables('storageAccountName')]"
+            },
+            "functionsStorageAccountId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionsStorageAccountName'))]"
+            },
+            "functionsStorageAccountName": {
+              "type": "string",
+              "value": "[variables('functionsStorageAccountName')]"
             },
             "dataLakeId": {
               "type": "string",
@@ -2879,6 +2943,10 @@
     "blobStorageAccountName": {
       "type": "string",
       "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.storageAccountName.value]"
+    },
+    "functionsStorageAccountName": {
+      "type": "string",
+      "value": "[reference(extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, variables('resourceGroupNames').data), 'Microsoft.Resources/deployments', 'data-layer-deployment'), '2025-04-01').outputs.functionsStorageAccountName.value]"
     },
     "dataLakeStorageAccountName": {
       "type": "string",

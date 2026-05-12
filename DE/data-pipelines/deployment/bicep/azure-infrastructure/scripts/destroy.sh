@@ -4,27 +4,15 @@
 # Azure Infrastructure Cleanup Script
 # Credit Scoring + Agentic AI Platform
 # ==================================================
+# Resolves ENVIRONMENT, ORG_NAME, PROJECT_NAME from the environment; if any
+# are unset, prompts interactively (same names as DEPLOYMENT_GUIDE.md session).
 
-set -e  # Exit on error
+set -e
 
-# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
-# ==================================================
-# Configuration
-# ==================================================
-
-ENVIRONMENT="${ENVIRONMENT:-dev}"
-ORG_NAME="${ORG_NAME:-payswitch}"
-PROJECT_NAME="${PROJECT_NAME:-creditscore}"
-NAMING_PREFIX="${ORG_NAME}-${PROJECT_NAME}-${ENVIRONMENT}"
-
-# ==================================================
-# Functions
-# ==================================================
+NC='\033[0m'
 
 log_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -38,8 +26,33 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Same names as deployment session / TEARDOWN.md (export after DEPLOYMENT_GUIDE §1, or pass inline)
+if [ -z "${ENVIRONMENT}" ]; then
+    read -r -p "Environment (dev/staging/prod) — same as \$ENVIRONMENT in DEPLOYMENT_GUIDE: " input
+    ENVIRONMENT="${input}"
+fi
+
+while [ -z "${ORG_NAME}" ]; do
+    read -r -p "Org name (required) — same as orgName / ORG_NAME in main.parameters.json: " ORG_NAME
+done
+
+while [ -z "${PROJECT_NAME}" ]; do
+    read -r -p "Project name (required) — same as projectName / PROJECT_NAME in main.parameters.json: " PROJECT_NAME
+done
+
+NAMING_PREFIX="${ORG_NAME}-${PROJECT_NAME}-${ENVIRONMENT}"
+
+case "${ENVIRONMENT}" in
+    dev|staging|prod) ;;
+    *)
+        log_error "ENVIRONMENT must be dev, staging, or prod (got: ${ENVIRONMENT})"
+        exit 1
+        ;;
+esac
+
 list_resource_groups() {
     log_info "Finding resource groups for environment: $ENVIRONMENT"
+    log_info "Naming prefix: $NAMING_PREFIX"
 
     az group list \
         --query "[?contains(name, '${NAMING_PREFIX}')].name" \
@@ -47,7 +60,8 @@ list_resource_groups() {
 }
 
 delete_resource_groups() {
-    local resource_groups=$(list_resource_groups)
+    local resource_groups
+    resource_groups=$(list_resource_groups)
 
     if [ -z "$resource_groups" ]; then
         log_warn "No resource groups found matching: ${NAMING_PREFIX}"
@@ -75,10 +89,6 @@ delete_resource_groups() {
     log_info "Deletion initiated for all resource groups (running in background)"
 }
 
-# ==================================================
-# Main Execution
-# ==================================================
-
 main() {
     echo ""
     log_info "========================================"
@@ -97,5 +107,4 @@ main() {
     echo ""
 }
 
-# Run main function
 main "$@"

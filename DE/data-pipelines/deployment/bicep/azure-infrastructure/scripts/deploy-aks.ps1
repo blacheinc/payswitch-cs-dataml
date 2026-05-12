@@ -4,7 +4,7 @@ AKS Deployment Script
 This script deploys AKS and Container Registry.
 
 Recommended usage (from repo root):
-  .\credit-scoring\azure-infrastructure\scripts\deploy-aks.ps1 -Location eastus2 -NamingPrefix blache-creditscore-dev
+  .\deploy-aks.ps1 -Location eastus2 -NamingPrefix "<org>-<project>-<environment>"
 
 If you already ran the environment setup block from ..\docs\DEPLOYMENT_GUIDE.md in the same PowerShell session,
 you can omit most parameters and the script will reuse the existing variables.

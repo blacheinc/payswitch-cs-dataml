@@ -5,8 +5,8 @@
     "functionApps": {
       "value": [
         {
-          "name": "blache-cdtscr-dev-transform-y27jgavel2x32",
-          "resourceGroupName": "blache-cdtscr-dev-data-rg"
+          "name": "OVERRIDE-org-project-dev-transformation-func",
+          "resourceGroupName": "OVERRIDE-org-project-dev-data-rg"
         }
       ]
     },
@@ -14,25 +14,25 @@
       "value": []
     },
     "blobStorageAccountName": {
-      "value": "blachedly27jgavel2x32"
+      "value": "REPLACE_BLOB_STORAGE_ACCOUNT_NAME"
     },
     "dataLakeStorageAccountName": {
-      "value": "blachedly27jgavel2x32"
+      "value": "REPLACE_DATALAKE_STORAGE_ACCOUNT_NAME"
     },
     "storageResourceGroupName": {
-      "value": "blache-cdtscr-dev-data-rg"
+      "value": "OVERRIDE-org-project-dev-data-rg"
     },
     "keyVaultName": {
-      "value": "blachekvruhclai6km"
+      "value": "REPLACE_KEY_VAULT_NAME"
     },
     "keyVaultResourceGroupName": {
-      "value": "blache-cdtscr-dev-data-rg"
+      "value": "OVERRIDE-org-project-dev-data-rg"
     },
     "serviceBusNamespaceName": {
-      "value": "blache-cdtscr-dev-sb-y27jgavel2x32"
+      "value": "REPLACE_SERVICE_BUS_NAMESPACE_NAME"
     },
     "serviceBusResourceGroupName": {
-      "value": "blache-cdtscr-dev-data-rg"
+      "value": "OVERRIDE-org-project-dev-data-rg"
     }
   }
 }

@@ -26,12 +26,15 @@ pr:
     include:
       - azure-infrastructure/**
 
+# Variable group 'azure-credentials' must define at least:
+#   azureServiceConnection — name of the Azure RM service connection
+#   infraOrgSlug, infraProjectSlug — must match orgName / projectName in your parameter file (for smoke-test naming)
+#   approvalNotifyEmails — semicolon-separated list for ManualValidation (e.g. ops@example.com;lead@example.com)
+#   deploymentPrimaryLocation — Azure region for az deployment sub (e.g. eastus2); should match primaryLocation in parameters
 variables:
-  - group: 'azure-credentials'  # Variable group with service connection details
+  - group: 'azure-credentials'
   - name: bicepPath
     value: 'azure-infrastructure/bicep-templates'
-  - name: azureServiceConnection
-    value: 'PaySwitch-Azure-ServiceConnection'
 
 stages:
   # ==================================================
@@ -89,7 +92,7 @@ stages:
                 echo "Validating for environment: $ENV"
 
                 az deployment sub validate \
-                  --location eastus \
+                  --location $(deploymentPrimaryLocation) \
                   --template-file main.bicep \
                   --parameters @main.parameters.json \
                   --parameters environment=$ENV \
@@ -139,7 +142,7 @@ stages:
                       cd $(Build.SourcesDirectory)/$(bicepPath)
 
                       az deployment sub create \
-                        --location eastus \
+                        --location $(deploymentPrimaryLocation) \
                         --template-file main.bicep \
                         --parameters @main.parameters.json \
                         --parameters environment=dev \
@@ -193,7 +196,7 @@ stages:
                       cd $(Build.SourcesDirectory)/$(bicepPath)
 
                       az deployment sub create \
-                        --location eastus \
+                        --location $(deploymentPrimaryLocation) \
                         --template-file main.bicep \
                         --parameters @main.parameters.json \
                         --parameters environment=staging \
@@ -240,7 +243,7 @@ stages:
                 - task: ManualValidation@0
                   displayName: 'Manual Approval Required'
                   inputs:
-                    notifyUsers: 'ops@payswitch.com.gh'
+                    notifyUsers: '$(approvalNotifyEmails)'
                     instructions: 'Please review and approve production deployment'
                     onTimeout: 'reject'
 
@@ -254,7 +257,7 @@ stages:
                       cd $(Build.SourcesDirectory)/$(bicepPath)
 
                       az deployment sub create \
-                        --location eastus \
+                        --location $(deploymentPrimaryLocation) \
                         --template-file main.bicep \
                         --parameters @main.parameters.json \
                         --parameters environment=prod \
@@ -334,7 +337,8 @@ stages:
 
                 # Check resource groups
                 EXPECTED_RGS=8
-                ACTUAL_RGS=$(az group list --query "[?contains(name, 'payswitch-creditscore-$ENV')].name" -o tsv | wc -l)
+                NAMING_FILTER="$(infraOrgSlug)-$(infraProjectSlug)-${ENV}"
+                ACTUAL_RGS=$(az group list --query "[?contains(name, \"${NAMING_FILTER}\")].name" -o tsv | wc -l)
 
                 if [ $ACTUAL_RGS -eq $EXPECTED_RGS ]; then
                   echo "✓ All $EXPECTED_RGS resource groups created"

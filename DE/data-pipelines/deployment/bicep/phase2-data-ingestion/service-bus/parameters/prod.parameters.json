@@ -6,7 +6,7 @@
                                         "value":  "eastus2"
                                     },
                        "namingPrefix":  {
-                                            "value":  "payswitch-creditscore-prod"
+                                            "value":  "OVERRIDE-org-project-prod"
                                         },
                        "environment":  {
                                            "value":  "prod"

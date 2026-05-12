@@ -12,18 +12,19 @@
       "value": "westus2"
     },
     "projectName": {
-      "value": "creditscore"
+      "value": "YOUR_PROJECT_SLUG"
     },
     "orgName": {
-      "value": "payswitch"
+      "value": "YOUR_ORG_SLUG"
     },
     "tags": {
       "value": {
         "Project": "Credit-Scoring-Agentic-AI",
         "Environment": "prod",
         "ManagedBy": "Bicep",
-        "Owner": "PaySwitch",
-        "CostCenter": "FinTech-Operations"
+        "Owner": "YOUR_ORG_SLUG",
+        "CostCenter": "FinTech-Operations",
+        "DeployedBy": "Bicep"
       }
     },
     "adminEmail": {
@@ -55,6 +56,9 @@
     },
     "jumpVmSize": {
       "value": "Standard_B2s"
+    },
+    "privateNetworkMode": {
+      "value": true
     }
   }
 }

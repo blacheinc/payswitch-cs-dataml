@@ -10,35 +10,39 @@ targetScope = 'subscription'
 // ==================================================
 // Parameters
 // ==================================================
+// Deploy from repo root (examples):
+//   az deployment sub create ... --parameters @main.parameters.json
+//   az deployment sub create ... --parameters @main.prod.parameters.json
+//
+// EDIT THOSE JSON FILES to change region, environment, privateNetworkMode, org/project names, tags, and feature flags.
+// Do not rely on Bicep defaults for subscription-wide behavior — pass a parameter file (or equivalent CLI args).
+// Required parameters below have no default so subscription deploys fail fast without explicit values.
 
-@description('Environment name (dev, staging, prod)')
+@description('Environment name (dev, staging, prod). Must match your parameter file.')
 @allowed([
   'dev'
   'staging'
   'prod'
 ])
-param environment string = 'dev'
+param environment string
 
-@description('Primary Azure region for deployment')
-param primaryLocation string = 'eastus'
+@description('Primary Azure region for all resource groups and modules (must match subscription deployment --location and Phase 2 parameter `location`).')
+param primaryLocation string
+
+@description('false = normal operator posture (Key Vault network Allow, relaxed data-layer networking). true = private posture (see PRIVATE_DEPLOYMENT_GUIDE.md). Also set Phase 2 JSON privateNetworkMode when using private stack.')
+param privateNetworkMode bool = false
 
 @description('Secondary Azure region for DR')
 param secondaryLocation string = 'westus2'
 
-@description('Project name prefix for resource naming')
-param projectName string = 'creditscore'
+@description('Project name prefix for resource naming (set in your parameter file; no default in template).')
+param projectName string
 
-@description('Organization/Company name')
-param orgName string = 'payswitch'
+@description('Organization / company short name for resource naming (set in your parameter file; no default in template).')
+param orgName string
 
-@description('Tags to apply to all resources')
-param tags object = {
-  Project: 'Credit-Scoring-Agentic-AI'
-  Environment: environment
-  ManagedBy: 'Bicep'
-  Owner: 'PaySwitch'
-  CostCenter: 'FinTech-Operations'
-}
+@description('Tags to apply to all resources. Supply the full object from your parameter file (no template default).')
+param tags object
 
 @description('Administrator email for alerts and notifications')
 param adminEmail string
@@ -203,6 +207,7 @@ module security './security/keyvault.bicep' = {
     enablePurgeProtection: environment == 'prod'
     enableAdvancedSecurity: enableAdvancedSecurity
     adminEmail: adminEmail
+    privateNetworkMode: privateNetworkMode
     tags: tags
   }
 }
@@ -232,6 +237,10 @@ module dataLayer './data/data-services.bicep' = {
     enableHA: config.enableHA
     keyVaultName: security.outputs.keyVaultName
     subnetId: networking.outputs.dataSubnetId
+    privateNetworkMode: privateNetworkMode
+    environment: privateNetworkMode ? 'production' : 'dev'
+    vnetId: privateNetworkMode ? networking.outputs.vnetId : ''
+    mlSubnetId: privateNetworkMode ? networking.outputs.mlSubnetId : ''
     tags: tags
   }
 }
@@ -302,6 +311,8 @@ output mlWorkspaceName string = deployMlWorkspace ? mlWorkspace.outputs.workspac
 // General-purpose v2 blob account (no hierarchical namespace) — backend / artifacts / models containers
 output storageAccountName string = dataLayer.outputs.storageAccountName
 output blobStorageAccountName string = dataLayer.outputs.storageAccountName
+// Dedicated GPv2 account for Azure Functions host runtime (queues / internal host state only)
+output functionsStorageAccountName string = dataLayer.outputs.functionsStorageAccountName
 // ADLS Gen2 — hierarchical namespace (raw / processed / curated)
 output dataLakeStorageAccountName string = dataLayer.outputs.dataLakeName
 output postgresServerName string = dataLayer.outputs.postgresServerName

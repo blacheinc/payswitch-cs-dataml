@@ -853,15 +853,15 @@ resource managedVNet 'Microsoft.DataFactory/factories/managedVirtualNetworks@201
 # For Production - Update Function App connection strings to use private endpoints
 
 # PostgreSQL connection string (use private endpoint FQDN)
-$POSTGRES_PRIVATE_FQDN = "blache-creditscore-prod-postgres.privatelink.postgres.database.azure.com"
+$POSTGRES_PRIVATE_FQDN = "<org>-<project>-<environment>-postgres.privatelink.postgres.database.azure.com"
 $POSTGRES_CONNECTION_STRING = "postgresql://user:pass@$POSTGRES_PRIVATE_FQDN:5432/credit_scoring"
 
 # Redis connection string (use private endpoint FQDN)
-$REDIS_PRIVATE_FQDN = "blache-creditscore-prod-redis.redis.cache.windows.net"
+$REDIS_PRIVATE_FQDN = "<org>-<project>-<environment>-redis.redis.cache.windows.net"
 $REDIS_CONNECTION_STRING = "$REDIS_PRIVATE_FQDN:6380,ssl=true"
 
 # Cosmos DB connection string (use private endpoint FQDN)
-$COSMOS_PRIVATE_FQDN = "blache-creditscore-prod-cosmos.mongo.cosmos.azure.com"
+$COSMOS_PRIVATE_FQDN = "<org>-<project>-<environment>-cosmos.mongo.cosmos.azure.com"
 $COSMOS_CONNECTION_STRING = "mongodb://$COSMOS_PRIVATE_FQDN:10255/?ssl=true"
 
 # Update Function App settings

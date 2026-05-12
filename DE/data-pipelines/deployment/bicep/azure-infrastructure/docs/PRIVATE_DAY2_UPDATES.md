@@ -1,23 +1,24 @@
-# Private Day 2 Updates (`prod` parameter track)
+# Private Day 2 Updates (private deployment guide)
 
 This runbook applies **Day 2 updates** using:
 
 - Templates: `deployment/bicep/day2-updates/modules/*`
-- Parameters: `deployment/bicep/day2-updates/parameters/prod/*`
+- Parameters: `deployment/bicep/day2-updates/parameters/<environment>/*` — set **`$ENVIRONMENT`** to the subdirectory under `parameters/` that you pair with **`PRIVATE_DEPLOYMENT_GUIDE.md`**.
 - Scripts: `deployment/bicep/day2-updates/scripts/*`
 
 ## Related guides
 
 - Private deployment flow: `PRIVATE_DEPLOYMENT_GUIDE.md`
-- Dev Day 2 track: `DAY2_UPDATES.md`
+- Default deployment guide Day 2: `DAY2_UPDATES.md`
 - How everything connects: `HOW_DEPLOYMENT_FITS_TOGETHER.md`
 
 ## 1) Set session variables
 
 ```powershell
-$WORKSPACE = "C:\Users\olanr\Desktop\blache"
+$WORKSPACE = "C:\path\to\your\repo-clone"
 $DAY2 = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\day2-updates"
-$PARAMS = Join-Path $DAY2 "parameters\prod"
+$ENVIRONMENT = "<environment>"   # must match folder under day2-updates/parameters/
+$PARAMS = Join-Path $DAY2 "parameters\$ENVIRONMENT"
 
 $SCRIPTS = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\azure-infrastructure\scripts"
 
@@ -26,27 +27,27 @@ $SUBSCRIPTION_ID = az account show --query id -o tsv
 az account set --subscription $SUBSCRIPTION_ID
 az account show --query "{name:name,id:id}" -o table
 
-# Recover latest successful prod main deployment name automatically
+# Recover latest successful main deployment for this environment
 $DEPLOYMENT_NAME_MAIN = az deployment sub list `
-  --query "[?starts_with(name, 'main-prod-') && properties.provisioningState=='Succeeded'] | sort_by(@, &properties.timestamp) | [-1].name" `
+  --query "[?starts_with(name, 'main-$ENVIRONMENT-') && properties.provisioningState=='Succeeded'] | sort_by(@, &properties.timestamp) | [-1].name" `
   -o tsv
 if ([string]::IsNullOrWhiteSpace($DEPLOYMENT_NAME_MAIN)) {
-  throw "Could not resolve latest successful main-prod deployment. Set DEPLOYMENT_NAME_MAIN manually."
+  throw "Could not resolve latest successful main-$ENVIRONMENT deployment. Set DEPLOYMENT_NAME_MAIN manually."
 }
 
 cd $SCRIPTS
-. .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN
+. .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN -ResolveDataRgResources
 
 $LOCATION = az deployment sub show --name $DEPLOYMENT_NAME_MAIN --query location -o tsv
 
 # Standardized alias (some Day 2 examples use this name)
 $RG_DATA = $DATA_RG
 
-$SERVICEBUS_NAMESPACE = az servicebus namespace list -g $DATA_RG --query "[0].name" -o tsv
-$KEYVAULT_NAME = az keyvault list -g $SECURITY_RG --query "[0].name" -o tsv
 $BLOB_STORAGE_ACCOUNT = $MainBlobStorageAccountName
 $DATALAKE_STORAGE_ACCOUNT = $MainDataLakeStorageAccountName
 ```
+
+`$KEYVAULT_NAME` comes from `main.bicep` outputs. `$SERVICEBUS_NAMESPACE`, `$ADF_NAME`, `$ADF_RG`, and `$FUNCTION_APP_NAMES` are set when Phase 2 resources exist in `$DATA_RG` (same **`-ResolveDataRgResources`** switch as `DAY2_UPDATES.md`).
 
 ## 2) Service Bus SQL rule updates
 
@@ -62,8 +63,7 @@ az deployment group create `
 Verify rules (example):
 
 ```powershell
-$SB_NAMESPACE = az servicebus namespace list -g $DATA_RG --query "[0].name" -o tsv
-az servicebus topic subscription rule list -g $DATA_RG --namespace-name $SB_NAMESPACE --topic-name "data-ingested" --subscription-name "start-transformation" -o table
+az servicebus topic subscription rule list -g $DATA_RG --namespace-name $SERVICEBUS_NAMESPACE --topic-name "data-ingested" --subscription-name "start-transformation" -o table
 ```
 
 ## 3) Blob + ADLS container/filesystem updates
@@ -149,15 +149,12 @@ cd "$DAY2\scripts"
 
 ## 6) ADF IAM updates (system-assigned identity)
 
-Resolve ADF factory name and assign required roles on Storage, Key Vault, and Service Bus:
+Confirm `$ADF_NAME` is set (from **section 1** with `-ResolveDataRgResources`). Assign required roles on Storage, Key Vault, and Service Bus:
 
 ```powershell
-$ADF_RG = $DATA_RG
-$ADF_NAME = az datafactory list -g $ADF_RG --query "[0].name" -o tsv
-if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "Could not resolve ADF factory in $ADF_RG." }
-
+if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "ADF_NAME is empty. Deploy Phase 2 and re-run set-vars-from-main-deployment.ps1 -ResolveDataRgResources." }
 az deployment sub create `
-  --name "day2-prod-adf-iam-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
+  --name "day2-$ENVIRONMENT-adf-iam-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
   --location $LOCATION `
   --template-file "$DAY2\modules\adf-iam\main.update.bicep" `
   --parameters "dataFactoryName=$ADF_NAME" `
