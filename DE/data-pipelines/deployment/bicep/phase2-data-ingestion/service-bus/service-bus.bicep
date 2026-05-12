@@ -289,7 +289,7 @@ resource modelDeployedComplianceSubscription 'Microsoft.ServiceBus/namespaces/to
 
 // ==================================================
 // Additional topics/subscriptions required by current DE runtime
-// (aligned to live deployment in blache-cdtscr-dev)
+// (aligned to the DE runtime topics/subscriptions your environment requires)
 // ==================================================
 
 resource dataAwaitsIngestionTopic 'Microsoft.ServiceBus/namespaces/topics@2022-10-01-preview' = {

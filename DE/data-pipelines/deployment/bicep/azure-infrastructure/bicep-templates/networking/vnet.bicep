@@ -363,6 +363,24 @@ resource mlNsg 'Microsoft.Network/networkSecurityGroups@2021-05-01' = {
           direction: 'Outbound'
         }
       }
+      // Azure ML compute in a VNet must reach Azure Storage on 443 and 445 (SMB/file mounts).
+      // Without 445, workspace storage mount fails with StorageMountError (see aka.ms/AMLComputeVnet).
+      {
+        name: 'AllowOutboundAzureStorage'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '443'
+            '445'
+          ]
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'Storage'
+          access: 'Allow'
+          priority: 120
+          direction: 'Outbound'
+        }
+      }
       {
         name: 'DenyAllOutbound'
         properties: {

@@ -1,26 +1,15 @@
 # ==================================================
 # Azure Infrastructure Cleanup Script (PowerShell)
-# Credit Scoring + Agentic AI Platform
 # ==================================================
 
 param(
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet("dev", "staging", "prod")]
     [string]$Environment,
-    [string]$OrgName = "blache",
-    [string]$ProjectName = "creditscore",
+    [string]$OrgName,
+    [string]$ProjectName,
     [switch]$Force
 )
-
-# ==================================================
-# Configuration
-# ==================================================
-
-$NamingPrefix = "$OrgName-$ProjectName-$Environment"
-
-# ==================================================
-# Functions
-# ==================================================
 
 function Write-Info {
     param([string]$Message)
@@ -32,144 +21,175 @@ function Write-Warn {
     Write-Host "[WARN] $Message" -ForegroundColor Yellow
 }
 
-function Write-Error {
+function Write-Err {
     param([string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
 
+function Resolve-DestroyInputs {
+    $envVal = $Environment
+    if ([string]::IsNullOrWhiteSpace($envVal)) { $envVal = $env:ENVIRONMENT }
+    if ([string]::IsNullOrWhiteSpace($envVal)) {
+        $envVal = Read-Host "Environment (dev, staging, prod) - same as ENVIRONMENT in deployment guide"
+    }
+    if ($envVal -notin @("dev", "staging", "prod")) {
+        throw "Environment must be dev, staging, or prod (got: '$envVal')."
+    }
+
+    $orgVal = $OrgName
+    if ([string]::IsNullOrWhiteSpace($orgVal)) { $orgVal = $env:ORG_NAME }
+    while ([string]::IsNullOrWhiteSpace($orgVal)) {
+        $orgVal = Read-Host "Org name (required) - same as orgName / ORG_NAME"
+    }
+
+    $projVal = $ProjectName
+    if ([string]::IsNullOrWhiteSpace($projVal)) { $projVal = $env:PROJECT_NAME }
+    while ([string]::IsNullOrWhiteSpace($projVal)) {
+        $projVal = Read-Host "Project name (required) - same as projectName / PROJECT_NAME"
+    }
+
+    return @{
+        Environment  = $envVal
+        OrgName      = $orgVal
+        ProjectName  = $projVal
+        NamingPrefix = "$orgVal-$projVal-$envVal"
+    }
+}
+
 function Get-ResourceGroups {
+    param([string]$NamingPrefix, [string]$Environment)
     Write-Info "Finding resource groups for environment: $Environment"
     Write-Info "Searching for resource groups matching: $NamingPrefix"
-    
-    $query = '[?contains(name, ''' + $NamingPrefix + ''')].{Name:name, Location:location}'
-    $resourceGroups = az group list --query $query -o json | ConvertFrom-Json
-    
-    return $resourceGroups
+
+    $json = az group list -o json
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) {
+        return @()
+    }
+
+    $allGroups = $json | ConvertFrom-Json
+    if ($allGroups -isnot [System.Array]) {
+        $allGroups = @($allGroups)
+    }
+    $resourceGroups = @()
+    foreach ($group in $allGroups) {
+        if ($group.name -like "*$NamingPrefix*") {
+            $resourceGroups += [PSCustomObject]@{
+                Name = $group.name
+                Location = $group.location
+            }
+        }
+    }
+    return @($resourceGroups)
 }
 
 function Remove-ResourceGroups {
-    param([array]$ResourceGroups)
-    
+    param([array]$ResourceGroups, [string]$NamingPrefix, [switch]$Force)
+
     if ($ResourceGroups.Count -eq 0) {
         Write-Warn "No resource groups found matching: $NamingPrefix"
         return
     }
-    
+
     Write-Host ""
     Write-Info "Resource groups to be deleted:"
     foreach ($rg in $ResourceGroups) {
         Write-Host "  - $($rg.Name) ($($rg.Location))" -ForegroundColor Yellow
     }
     Write-Host ""
-    
+
     if (-not $Force) {
-        Write-Warn "This will DELETE all resources in these resource groups!"
-        $confirmation = Read-Host "Are you absolutely sure? Type 'DELETE' to confirm"
-        
+        Write-Warn "This will delete all resources in these resource groups."
+        $confirmation = Read-Host "Type DELETE to confirm"
         if ($confirmation -ne "DELETE") {
             Write-Warn "Deletion cancelled by user"
             return
         }
     }
-    
+
     Write-Host ""
     foreach ($rg in $ResourceGroups) {
         Write-Info "Deleting resource group: $($rg.Name)"
         az group delete --name $rg.Name --yes --no-wait
         if ($LASTEXITCODE -eq 0) {
-            Write-Info "  ✓ Deletion initiated for: $($rg.Name)"
+            Write-Info "Deletion initiated for: $($rg.Name)"
         } else {
-            Write-Error "  ✗ Failed to initiate deletion for: $($rg.Name)"
+            Write-Err "Failed to initiate deletion for: $($rg.Name)"
         }
     }
-    
+
     Write-Host ""
-    Write-Info "Deletion initiated for all resource groups (running in background)"
-    Write-Info "Use 'az group list' to monitor progress"
-    Write-Info "Use 'az group show --name <rg-name>' to check status of specific resource group"
+    Write-Info "Deletion initiated for all resource groups (async)."
+    Write-Info "Use az group list to monitor progress."
 }
 
 function Get-PrivateDnsZones {
-    Write-Info "Finding Private DNS Zones that may have been created..."
-    
-    $query = '[?contains(name, ''privatelink'')].{Name:name, ResourceGroup:resourceGroup}'
-    $dnsZones = az network private-dns zone list --query $query -o json | ConvertFrom-Json
-    
-    return $dnsZones
+    param([string[]]$ResourceGroupNames)
+    Write-Info "Finding Private DNS zones in matched resource groups..."
+    $query = "[?contains(name, 'privatelink')].{Name:name, ResourceGroup:resourceGroup}"
+    $json = az network private-dns zone list --query $query -o json
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) {
+        return @()
+    }
+    $zones = $json | ConvertFrom-Json
+    if ($zones -isnot [System.Array]) {
+        $zones = @($zones)
+    }
+    if ($null -eq $ResourceGroupNames -or $ResourceGroupNames.Count -eq 0) {
+        return @()
+    }
+    return @($zones | Where-Object { $ResourceGroupNames -contains $_.ResourceGroup })
 }
 
 function Remove-PrivateDnsZones {
     param([array]$DnsZones)
-    
     if ($DnsZones.Count -eq 0) {
-        Write-Info "No Private DNS Zones found to clean up"
+        Write-Info "No Private DNS zones found to clean up"
         return
     }
-    
+
     Write-Host ""
-    Write-Info "Private DNS Zones found (may be in resource groups):"
+    Write-Info "Private DNS zones found (deleted when RGs are deleted):"
     foreach ($zone in $DnsZones) {
         Write-Host "  - $($zone.Name) (RG: $($zone.ResourceGroup))" -ForegroundColor Yellow
     }
-    Write-Host ""
-    Write-Info "These will be deleted when their resource groups are deleted"
 }
-
-# ==================================================
-# Main Execution
-# ==================================================
 
 function Main {
     Write-Host ""
     Write-Info "========================================"
     Write-Info "Azure Infrastructure Cleanup"
-    Write-Info "Credit Scoring + Agentic AI Platform"
     Write-Info "========================================"
     Write-Host ""
-    
-    # Check Azure CLI
+
     if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-        Write-Error "Azure CLI is not installed. Please install it first."
+        Write-Err "Azure CLI is not installed. Install it first."
         exit 1
     }
-    
-    # Check if logged in
+
     try {
         $account = az account show 2>&1 | ConvertFrom-Json
-        if (-not $account) {
-            throw
-        }
+        if (-not $account) { throw }
         Write-Info "Current subscription: $($account.name) ($($account.id))"
     } catch {
-        Write-Error "Not logged in to Azure. Please run 'az login' first."
+        Write-Err "Not logged in to Azure. Run az login first."
         exit 1
     }
-    
+
+    $ctx = Resolve-DestroyInputs
     Write-Host ""
-    
-    # Get resource groups
-    $resourceGroups = Get-ResourceGroups
-    
-    # Get Private DNS Zones (for information)
-    $dnsZones = Get-PrivateDnsZones
-    
-    # Delete resource groups
-    Remove-ResourceGroups -ResourceGroups $resourceGroups
-    
-    # Show Private DNS Zones info
-    if ($dnsZones.Count -gt 0) {
-        Remove-PrivateDnsZones -DnsZones $dnsZones
-    }
-    
+    Write-Info "Using naming prefix: $($ctx.NamingPrefix)"
     Write-Host ""
-    Write-Info "========================================"
-    Write-Info "Cleanup initiated successfully!"
-    Write-Info "========================================"
+
+    $resourceGroups = Get-ResourceGroups -NamingPrefix $ctx.NamingPrefix -Environment $ctx.Environment
+    $matchedRgNames = @($resourceGroups | ForEach-Object { $_.Name })
+    $dnsZones = Get-PrivateDnsZones -ResourceGroupNames $matchedRgNames
+
+    Remove-ResourceGroups -ResourceGroups $resourceGroups -NamingPrefix $ctx.NamingPrefix -Force:$Force
+    Remove-PrivateDnsZones -DnsZones $dnsZones
+
     Write-Host ""
-    Write-Info "To monitor deletion progress:"
-    Write-Host "  az group list --query `"[?contains(name, '$NamingPrefix')].{Name:name, State:properties.provisioningState}`" -o table" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Info "Cleanup initiated."
+    Write-Host "az group list --query ""[?contains(name, '$($ctx.NamingPrefix)')].{Name:name, State:properties.provisioningState}"" -o table" -ForegroundColor Cyan
 }
 
-# Run main function
 Main

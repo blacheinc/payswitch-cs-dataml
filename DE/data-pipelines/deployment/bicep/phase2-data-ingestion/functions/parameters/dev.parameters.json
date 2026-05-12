@@ -1,34 +1,37 @@
 {
-    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-    "contentVersion":  "1.0.0.0",
-    "parameters":  {
-                       "location":  {
-                                        "value":  "eastus2"
-                                    },
-                       "namingPrefix":  {
-                                            "value":  "blache-cdtscr-dev"
-                                        },
-                       "functionsSubnetId":  {
-                                                 "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet/subnets/functions-subnet"
-                                             },
-                       "privateEndpointsSubnetId":  {
-                                                        "value":  "/subscriptions/411d9dd9-b1d7-4ed2-87fb-bc7c9a53cbaf/resourceGroups/blache-cdtscr-dev-network-rg/providers/Microsoft.Network/virtualNetworks/blache-cdtscr-dev-vnet/subnets/private-endpoints-subnet"
-                                                    },
-                       "functionsStorageAccountName":  {
-                                                           "value":  "blachesty27jgavel2x32"
-                                                       },
-                       "privateNetworkMode":  {
-                                                  "value":  true
-                                              },
-                       "premiumPlanSku":  {
-                                              "value":  "EP1"
-                                          },
-                       "tags":  {
-                                    "value":  {
-                                                  "Environment":  "dev",
-                                                  "ManagedBy":  "Bicep",
-                                                  "Project":  "Credit-Scoring"
-                                              }
-                                }
-                   }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus2"
+    },
+    "namingPrefix": {
+      "value": "OVERRIDE-org-project-dev"
+    },
+    "functionsSubnetId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-dev-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-dev-vnet/subnets/functions-subnet"
+    },
+    "privateEndpointsSubnetId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-dev-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-dev-vnet/subnets/private-endpoints-subnet"
+    },
+    "functionsStorageAccountName": {
+      "value": "REPLACE_FUNCTIONS_RUNTIME_STORAGE_ACCOUNT_NAME"
+    },
+    "privateNetworkMode": {
+      "value": true
+    },
+    "premiumPlanSku": {
+      "value": "EP1"
+    },
+    "planTier": {
+      "value": "ElasticPremium"
+    },
+    "tags": {
+      "value": {
+        "Environment": "dev",
+        "ManagedBy": "Bicep",
+        "Project": "changeme-project-label"
+      }
+    }
+  }
 }

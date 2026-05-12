@@ -7,10 +7,22 @@ param(
     [Parameter(Mandatory = $true)]
     [ValidateSet("dev", "staging", "prod")]
     [string]$Environment,
-    [string]$NamingPrefix = "blache-$Environment"
+    [string]$NamingPrefix = ""
 )
 
 $ErrorActionPreference = "Stop"
+
+if ([string]::IsNullOrWhiteSpace($NamingPrefix)) {
+    if (-not [string]::IsNullOrWhiteSpace($env:NAMING_PREFIX)) {
+        $NamingPrefix = $env:NAMING_PREFIX
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($env:ORG_NAME) -and -not [string]::IsNullOrWhiteSpace($env:PROJECT_NAME)) {
+        $NamingPrefix = "$($env:ORG_NAME)-$($env:PROJECT_NAME)-$Environment"
+    }
+    else {
+        throw "Set -NamingPrefix, or environment variable NAMING_PREFIX, or both ORG_NAME and PROJECT_NAME."
+    }
+}
 
 # Test counters
 $script:TESTS_PASSED = 0

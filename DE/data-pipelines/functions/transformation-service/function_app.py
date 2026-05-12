@@ -1,4 +1,4 @@
-﻿"""
+"""
 Transformation service — Azure Functions host for XDS training and inference.
 
 Exposes HTTP routes under ``/api/transform/...`` and a Service Bus topic trigger for

@@ -5,30 +5,30 @@
     "functionApps": {
       "value": [
         {
-          "name": "blache-cdtscr-dev-schema-mapping-func",
+          "name": "OVERRIDE-org-project-dev-schema-mapping-func",
           "resourceGroupName": ""
         },
         {
-          "name": "blache-cdtscr-dev-training-ingestion-func",
+          "name": "OVERRIDE-org-project-dev-training-ingestion-func",
           "resourceGroupName": ""
         },
         {
-          "name": "blache-cdtscr-dev-transformation-func",
+          "name": "OVERRIDE-org-project-dev-transformation-func",
           "resourceGroupName": ""
         },
         {
-          "name": "blache-cdtscr-dev-adf-trigger-func",
+          "name": "OVERRIDE-org-project-dev-adf-trigger-func",
           "resourceGroupName": ""
         },
         {
-          "name": "blache-cdtscr-dev-file-checksum-func",
+          "name": "OVERRIDE-org-project-dev-file-checksum-func",
           "resourceGroupName": ""
         }
       ]
     },
     "excludedFunctionAppNames": {
       "value": [
-        "blache-cdtscr-dev-file-checksum-func"
+        "OVERRIDE-org-project-dev-file-checksum-func"
       ]
     },
     "blobStorageAccountName": {

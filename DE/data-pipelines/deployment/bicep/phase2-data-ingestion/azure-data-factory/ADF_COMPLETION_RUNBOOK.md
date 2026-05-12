@@ -1,15 +1,17 @@
-# ADF Completion Runbook (dev + prod)
+# ADF Completion Runbook
 
 Use this after infrastructure (`main.bicep`), Phase 2, and Function code deploys are complete.
+
+Set **`$ENVIRONMENT`** to match the **`main-<environment>-*`** subscription deployment name prefix you deployed.
 
 ## 1) Session setup and dynamic resolution
 
 ```powershell
-$WORKSPACE = "C:\Users\olanr\Desktop\blache"
+$WORKSPACE = "C:\path\to\your\repo"   # clone root of this repository
 $SCRIPTS = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\azure-infrastructure\scripts"
 $DAY2 = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\day2-updates"
 
-$ENVIRONMENT = "dev"   # dev | prod
+$ENVIRONMENT = "<environment>"   # must match main deployment prefix main-<environment>-*
 $DEPLOYMENT_NAME_MAIN = az deployment sub list `
   --query "[?starts_with(name, 'main-$ENVIRONMENT-') && properties.provisioningState=='Succeeded'] | sort_by(@, &properties.timestamp) | [-1].name" `
   -o tsv

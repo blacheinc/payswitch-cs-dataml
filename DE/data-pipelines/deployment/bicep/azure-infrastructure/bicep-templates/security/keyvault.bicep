@@ -17,7 +17,7 @@ param enableAdvancedSecurity bool = true
 @description('Administrator email for security alerts')
 param adminEmail string
 
-@description('Enable private networking posture (disable public Key Vault access)')
+@description('Enable private networking posture: deny-by-default Key Vault ACL, disable public KV access, and align data-services networking (storage / Postgres / Redis). When false, Key Vault uses Allow for normal workstation CLI + RBAC.')
 param privateNetworkMode bool = false
 
 @description('Resource tags')
@@ -32,11 +32,13 @@ param tags object
 
 // Key Vault names must be 3-24 characters, alphanumeric, no consecutive hyphens
 // Extract org name (first part before first hyphen) and use shorter hash
-// Format: <org>kv<hash> = e.g., "blachekv<10-char-hash>" = ~18 characters
+// Format: <org>kv<hash> = e.g., "<orgShortName>kv<10-char-hash>" = ~18 characters
 var orgName = split(namingPrefix, '-')[0]
 var uniqueHash = substring(uniqueString(resourceGroup().id), 0, 10)
 var keyVaultName = '${orgName}kv${uniqueHash}'
 var managedIdentityName = '${namingPrefix}-identity'
+// Normal deployments: Allow data-plane from authenticated callers (RBAC). Private posture: Deny + disable public when privateNetworkMode.
+var keyVaultNetworkDefaultAction = privateNetworkMode ? 'Deny' : 'Allow'
 
 // ==================================================
 // Managed Identity
@@ -71,7 +73,7 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
     enableRbacAuthorization: true
     networkAcls: {
       bypass: 'AzureServices'
-      defaultAction: 'Deny'
+      defaultAction: keyVaultNetworkDefaultAction
       ipRules: []
       virtualNetworkRules: []
     }

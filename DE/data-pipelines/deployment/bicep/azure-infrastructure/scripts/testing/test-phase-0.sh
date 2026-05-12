@@ -13,9 +13,22 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Configuration
-ENVIRONMENT="${1:-dev}"
-NAMING_PREFIX="${2:-blache-${ENVIRONMENT}}"
+# Configuration — pass naming-prefix as second arg, or set NAMING_PREFIX / ORG_NAME+PROJECT_NAME
+ENVIRONMENT="${1:-}"
+if [ -z "${ENVIRONMENT}" ]; then
+  echo "Usage: $0 <dev|staging|prod> [naming-prefix]"
+  exit 1
+fi
+if [ -n "${2:-}" ]; then
+  NAMING_PREFIX="${2}"
+elif [ -n "${NAMING_PREFIX:-}" ]; then
+  :
+elif [ -n "${ORG_NAME:-}" ] && [ -n "${PROJECT_NAME:-}" ]; then
+  NAMING_PREFIX="${ORG_NAME}-${PROJECT_NAME}-${ENVIRONMENT}"
+else
+  echo "Provide naming-prefix as second argument, or set NAMING_PREFIX, or set ORG_NAME and PROJECT_NAME."
+  exit 1
+fi
 TIMEOUT=60
 
 TESTS_PASSED=0

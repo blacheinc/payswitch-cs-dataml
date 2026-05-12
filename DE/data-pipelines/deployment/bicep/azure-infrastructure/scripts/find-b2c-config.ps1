@@ -13,7 +13,7 @@
     .\find-b2c-config.ps1
 
 .EXAMPLE
-    .\find-b2c-config.ps1 -TenantName "blache-creditscore-b2c"
+    .\find-b2c-config.ps1 -TenantName "<org>-<project>-b2c"
 #>
 
 param(
@@ -92,9 +92,9 @@ Write-Host "1. Go to Azure Portal: https://portal.azure.com" -ForegroundColor Cy
 Write-Host "2. Search for 'Azure AD B2C' in the top search bar" -ForegroundColor Cyan
 Write-Host "3. Select your B2C tenant" -ForegroundColor Cyan
 Write-Host "4. Note the tenant name from the URL or Overview page:" -ForegroundColor Cyan
-Write-Host "   Example: If URL is 'https://portal.azure.com/#@blache-creditscore-b2c.onmicrosoft.com'" -ForegroundColor Gray
-Write-Host "   Then tenant name is: 'blache-creditscore-b2c'" -ForegroundColor Gray
-Write-Host "   And domain is: 'blache-creditscore-b2c.onmicrosoft.com'" -ForegroundColor Gray
+Write-Host "   Example: If URL is 'https://portal.azure.com/#@<org>-<project>-b2c.onmicrosoft.com'" -ForegroundColor Gray
+Write-Host "   Then tenant name is: '<org>-<project>-b2c' (your real tenant name)" -ForegroundColor Gray
+Write-Host "   And domain is: '<org>-<project>-b2c.onmicrosoft.com'" -ForegroundColor Gray
 Write-Host ""
 Write-Host "5. Go to 'User flows' (or 'User flows (legacy)') in the left menu" -ForegroundColor Cyan
 Write-Host "6. Note the policy/user flow name (e.g., 'B2C_1_SignUpSignIn')" -ForegroundColor Cyan
@@ -110,13 +110,25 @@ Write-Host ""
 Write-Host "Method 4: Inferring from naming prefix..." -ForegroundColor Yellow
 $namingPrefix = $env:NAMING_PREFIX
 if (-not $namingPrefix) {
-    $namingPrefix = Read-Host "Enter your naming prefix (e.g., 'blache-creditscore-dev')"
+    $namingPrefix = Read-Host "Enter your naming prefix (e.g. '<org>-<project>-<environment>')"
 }
 
 if ($namingPrefix) {
-    # Extract org name (first part before hyphen)
-    $orgName = ($namingPrefix -split '-')[0]
-    $possibleTenant = "$orgName-creditscore-b2c"
+    $parts = $namingPrefix -split '-'
+    $possibleTenant = ""
+    if ($parts.Length -ge 3 -and $parts[-1] -in @('dev', 'staging', 'prod')) {
+        $projSeg = $parts[-2]
+        $orgSeg = ($parts[0..($parts.Length - 3)] -join '-')
+        if (-not [string]::IsNullOrWhiteSpace($orgSeg) -and -not [string]::IsNullOrWhiteSpace($projSeg)) {
+            $possibleTenant = "$orgSeg-$projSeg-b2c"
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($possibleTenant) -and $parts.Length -ge 2) {
+        $possibleTenant = "$($parts[0])-$($parts[1])-b2c"
+    }
+    elseif ([string]::IsNullOrWhiteSpace($possibleTenant)) {
+        $possibleTenant = "$($parts[0])-b2c"
+    }
     
     Write-Host "  Based on naming prefix '$namingPrefix', possible B2C tenant: $possibleTenant" -ForegroundColor Gray
     Write-Host "  Testing..." -ForegroundColor Gray

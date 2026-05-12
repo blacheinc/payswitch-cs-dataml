@@ -72,8 +72,8 @@ var storageDefaultAction = isProduction ? 'Deny' : 'Allow'
 
 // ==================================================
 // Storage Account (Blob Storage - General Purpose)
-// NOTE: This is a standard blob storage account WITHOUT hierarchical namespace
-// Used for: models, artifacts, and data containers
+// NOTE: Standard GPv2 blob account WITHOUT hierarchical namespace.
+// Used for: models, artifacts, and data containers — not Azure Functions host runtime.
 // ==================================================
 
 // Virtual network rules shared by Storage & Data Lake
@@ -165,6 +165,48 @@ resource dataContainer 'Microsoft.Storage/storageAccounts/blobServices/container
   name: 'data'
   properties: {
     publicAccess: 'None'
+  }
+}
+
+// ==================================================
+// Dedicated storage — Azure Functions runtime only (GPv2, no HNS)
+// Isolated from the backend blob account above (models/artifacts/data containers).
+// Holds host state (queues, timers, internal blobs); application datasets stay on blob/ADLS.
+// ==================================================
+
+var functionsStorageAccountName = '${shortPrefix}fn${substring(uniqueString(resourceGroup().id, 'functions-runtime'), 0, 13)}'
+
+resource functionsRuntimeStorage 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: functionsStorageAccountName
+  location: location
+  tags: union(tags, {
+    Purpose: 'functions-runtime'
+  })
+  sku: {
+    name: 'Standard_LRS'
+  }
+  kind: 'StorageV2'
+  properties: {
+    accessTier: 'Hot'
+    minimumTlsVersion: 'TLS1_2'
+    supportsHttpsTrafficOnly: true
+    allowBlobPublicAccess: false
+    networkAcls: {
+      bypass: 'AzureServices'
+      defaultAction: storageDefaultAction
+      virtualNetworkRules: isProduction ? storageVirtualNetworkRules : []
+    }
+    encryption: {
+      services: {
+        blob: {
+          enabled: true
+        }
+        file: {
+          enabled: true
+        }
+      }
+      keySource: 'Microsoft.Storage'
+    }
   }
 }
 
@@ -371,6 +413,8 @@ resource redis 'Microsoft.Cache/redis@2023-08-01' = {
 
 output storageAccountId string = storageAccount.id
 output storageAccountName string = storageAccount.name
+output functionsStorageAccountId string = functionsRuntimeStorage.id
+output functionsStorageAccountName string = functionsRuntimeStorage.name
 output dataLakeId string = dataLake.id
 output dataLakeName string = dataLake.name
 output postgresServerId string = postgresServer.id

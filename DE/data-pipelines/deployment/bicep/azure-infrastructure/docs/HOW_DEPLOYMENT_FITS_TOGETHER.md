@@ -8,10 +8,11 @@ All live in this directory (`docs/`):
 
 | Document | When to use |
 |----------|-------------|
-| `DEPLOYMENT_GUIDE.md` | Default **`dev`** path with an environment toggle pattern (`dev`/`prod`) for naming/parameter selection; for private prod hardening, follow `PRIVATE_DEPLOYMENT_GUIDE.md`. |
-| `PRIVATE_DEPLOYMENT_GUIDE.md` | **`prod`** path: `main.bicep` with prod parameters, Phase 2 private stack, hydration scripts as documented. |
-| `DAY2_UPDATES.md` | Day 2 incremental updates with `day2-updates/parameters/dev/*`. |
-| `PRIVATE_DAY2_UPDATES.md` | Same Day 2 track for **`prod`** parameters under `day2-updates/parameters/prod/*`. |
+| `DEPLOYMENT_GUIDE.md` | Default **non-private** path; use **`$ENVIRONMENT`** for naming and parameter file selection. |
+| `PRIVATE_DEPLOYMENT_GUIDE.md` | **Private connectivity** path (`main.bicep` + Phase 2 private stack + hydration scripts); use **`$ENVIRONMENT`** consistent with your parameter files and main deployment name prefix. |
+| `DAY2_UPDATES.md` | Day 2 incremental updates paired with **`DEPLOYMENT_GUIDE.md`**; parameter directory **`day2-updates/parameters/<environment>/`**. |
+| `PRIVATE_DAY2_UPDATES.md` | Day 2 incremental updates paired with **`PRIVATE_DEPLOYMENT_GUIDE.md`**; parameter directory **`day2-updates/parameters/<environment>/`**. |
+| `TEARDOWN.md` | Delete subscription resource groups created by **`main.bicep`** using **`scripts/destroy.ps1`** or **`scripts/destroy.sh`**. |
 
 This file (`HOW_DEPLOYMENT_FITS_TOGETHER.md`) explains relationships and folder layout; it does not replace the step-by-step commands in the guides above.
 
@@ -21,9 +22,10 @@ This file (`HOW_DEPLOYMENT_FITS_TOGETHER.md`) explains relationships and folder 
 |------|---------|
 | **`main.bicep`** | Subscription-scoped orchestration under `azure-infrastructure/bicep-templates/main.bicep`. Creates resource groups and deploys core platform modules (network, data, security, compute hooks, optional AKS, Azure ML when enabled, and so on). |
 | **Phase 2** | The **`phase2-data-ingestion/`** Bicep stack: integrations that sit on top of the core platform (service-centric modules and parameters under `parameters/`). Deployed at resource-group scope after `main.bicep` outputs exist. |
-| **Day 2 updates** | The **`day2-updates/`** templates and scripts: targeted deltas such as Service Bus rules, storage containers and paths, Key Vault IAM, Functions storage/key RBAC, and PostgreSQL artifact apply. Parameters are split under `day2-updates/parameters/dev/` and `day2-updates/parameters/prod/`. |
+| **Day 2 updates** | The **`day2-updates/`** templates and scripts: targeted deltas such as Service Bus rules, storage containers and paths, Key Vault IAM, Functions storage/key RBAC, and PostgreSQL artifact apply. Parameters live under **`day2-updates/parameters/<environment>/`** (see subdirectories checked into the repo). |
 | **`deployMlWorkspace`** | `main.bicep` parameter; **defaults to `true`** so the Azure Machine Learning workspace module runs in normal deployments. Set `false` only for exceptional cases. |
 | **`deployAks`** | `main.bicep` parameter; **optional** by design. AKS is not required for the default data-path deployment unless you turn it on. |
+| **`hydrate-phase2-parameters.ps1`** | In `azure-infrastructure/scripts/` (`deployment/bicep/azure-infrastructure/scripts/hydrate-phase2-parameters.ps1` from repo root). Fills Phase 2 JSON under `phase2-data-ingestion/` from `main.bicep` outputs and Azure queries—**all** modules’ parameter files for the chosen environment, not only Functions. Run **after** `main.bicep` and **again** after Phase 2 module deployments so values such as Service Bus namespace (for ADF) resolve. Do **not** commit hydrated JSON with tenant-specific names if policy forbids it. See `DEPLOYMENT_GUIDE.md` / `PRIVATE_DEPLOYMENT_GUIDE.md`. |
 | **`set-vars-from-main-deployment.ps1`** | Script in `azure-infrastructure/scripts/` that reads outputs from a named subscription deployment and populates PowerShell variables (resource groups, storage account names, and so on) for Phase 2 and Day 2 commands. |
 
 ## Repository layout (deployment-focused)
@@ -47,7 +49,7 @@ data-pipelines/deployment/
 
 ## `azure-infrastructure/scripts/`
 
-Holds the **operational** PowerShell and shell entrypoints you run from a workstation: loading subscription deployment outputs, ordered Phase 2 deploy/what-if for private environments, and various small utilities. The deployment guides reference these by name. This is the first place to look for **“how do I run the next step after `main.bicep`?”**
+Holds the **operational** PowerShell and shell entrypoints you run from a workstation: loading subscription deployment outputs, **`hydrate-phase2-parameters.ps1`** (run after `main.bicep` and again after Phase 2—see the deployment guides), ordered Phase 2 deploy/what-if for private environments, **`destroy.ps1`** / **`destroy.sh`** (subscription RG cleanup—see **`docs/TEARDOWN.md`**), and various small utilities. The deployment guides reference these by name. This is the first place to look for **“how do I run the next step after `main.bicep`?”**
 
 ## `azure-infrastructure/scripts/testing/`
 
@@ -72,7 +74,7 @@ Completion checklist and dependency verification: [phase2-data-ingestion/azure-d
 
 ## Archived analysis
 
-`docs/archive/CONNECTIVITY_ANALYSIS.md` (if present) is **retired** reference material for network posture studies. Prefer current module behavior and the private deployment guide for production connectivity decisions.
+`docs/archive/CONNECTIVITY_ANALYSIS.md` (if present) is **retired** reference material for network posture studies. Prefer current module behavior and the private deployment guide for private-network connectivity decisions.
 
 ## End-to-end flow
 
@@ -92,34 +94,34 @@ flowchart LR
   M --> P2 --> D2
 ```
 
-## Environment matrix (`dev` vs `prod`)
+## Deployment tracks (`DEPLOYMENT_GUIDE.md` vs `PRIVATE_DEPLOYMENT_GUIDE.md`)
 
-Use **`dev`** when you are deploying the standard development subscription flow. Use **`prod`** when deploying the private production pattern (stricter networking, jump host option, and prod-tuned parameters).
+Use **`DEPLOYMENT_GUIDE.md`** when you deploy the **standard** subscription + Phase 2 flow without the private orchestration stack. Use **`PRIVATE_DEPLOYMENT_GUIDE.md`** when you deploy **private endpoints**, the jump host option, and Phase 2 modules via **`deploy-phase2-private.ps1`**. In both cases, set **`$ENVIRONMENT`** in PowerShell to match your **`main.<environment>.parameters.json`** file and the **`phase2-data-ingestion/**/parameters/*.json`** names you hydrate.
 
 ```mermaid
 flowchart TB
-  subgraph devTrack [dev track]
+  subgraph nonPrivateTrack [Default guide track]
     DG[docs/DEPLOYMENT_GUIDE.md]
-    P2D[phase2: dev parameters]
-    D2D[day2-updates/parameters/dev]
+    P2D[phase2 parameters keyed by ENVIRONMENT]
+    D2D[day2-updates parameters by environment]
     DG --> P2D --> D2D
   end
-  subgraph prodTrack [prod track]
+  subgraph privateTrack [Private guide track]
     PDG[docs/PRIVATE_DEPLOYMENT_GUIDE.md]
-    P2P[phase2: prod parameters + private scripts]
-    D2P[day2-updates/parameters/prod]
+    P2P[phase2 parameters + private scripts]
+    D2P[day2-updates parameters by environment]
     PDG --> P2P --> D2P
   end
 ```
 
-| Concern | dev | prod |
-|--------|-----|------|
+| Concern | Default guide (`DEPLOYMENT_GUIDE.md`) | Private guide (`PRIVATE_DEPLOYMENT_GUIDE.md`) |
+|--------|---------------------------------------|-----------------------------------------------|
 | Main deployment guide | `DEPLOYMENT_GUIDE.md` | `PRIVATE_DEPLOYMENT_GUIDE.md` |
-| Phase 2 parameter file | under `phase2-data-ingestion/parameters/` for dev | `parameters/prod.parameters.json` and related private flow in the private guide |
+| Phase 2 parameter files | Files under `phase2-data-ingestion/**/parameters/` named for **`$ENVIRONMENT`** | Same files; deploy Phase 2 via **private** orchestration scripts |
 | Day 2 guide | `DAY2_UPDATES.md` | `PRIVATE_DAY2_UPDATES.md` |
-| Day 2 parameters directory | `day2-updates/parameters/dev/` | `day2-updates/parameters/prod/` |
+| Day 2 parameters directory | `day2-updates/parameters/<environment>/` (see `DAY2_UPDATES.md`) | `day2-updates/parameters/<environment>/` (see `PRIVATE_DAY2_UPDATES.md`) |
 
-**Networking posture:** Production is deployed with a **private-by-default** posture (for example, private endpoints and controlled ingress) as described in the private deployment guide and Bicep modules. Development uses the **standard dev** posture for day-to-day engineering. The two tracks share the same **template families**; they differ by **parameter sets**, **scripts**, and **verification steps** appropriate to each environment.
+**Networking posture:** The private guide deploys **private-by-default** connectivity (private endpoints, controlled ingress). The default guide follows the **standard** footprint from `DEPLOYMENT_GUIDE.md`. Tracks share the **same template families**; they differ by **parameter sets**, **scripts**, and **verification steps** appropriate to each **`$ENVIRONMENT`**.
 
 ## Phase 2 vs Day 2 (when to use which)
 
@@ -130,7 +132,7 @@ flowchart TB
 
 ## Outputs you rely on across stages
 
-`main.bicep` exposes outputs (including **`mlWorkspaceName`** when the ML module deploys) consumed by verification steps in the deployment guides. Phase 2 and Day 2 commands assume you have run **`set-vars-from-main-deployment.ps1`** (or equivalent) so `$DATA_RG`, `$SECURITY_RG`, storage account variables, and related names resolve correctly.
+`main.bicep` exposes outputs (including **`mlWorkspaceName`** when the ML module deploys) consumed by verification steps in the deployment guides. Phase 2 and Day 2 commands assume you have run **`set-vars-from-main-deployment.ps1`** (or equivalent) so `$DATA_RG`, `$SECURITY_RG`, **`$ML_RG`** (ML workspace resource group), **`$KEYVAULT_NAME`** (from main outputs), storage account variables, and related names resolve correctly. After Phase 2 exists in Azure, use **`-ResolveDataRgResources`** on that script to populate **`$SERVICEBUS_NAMESPACE`**, **`$ADF_NAME`**, **`$ADF_RG`**, and **`$FUNCTION_APP_NAMES`** from the data resource group.
 
 ## Where superseded material lives (local only)
 

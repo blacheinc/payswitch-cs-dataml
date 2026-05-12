@@ -1,9 +1,9 @@
-# Day 2 Updates (`dev` parameter track)
+# Day 2 Updates (default deployment guide)
 
 This runbook applies **Day 2 updates** using:
 
 - Templates: `deployment/bicep/day2-updates/modules/*`
-- Parameters: `deployment/bicep/day2-updates/parameters/dev/*`
+- Parameters: `deployment/bicep/day2-updates/parameters/<environment>/` (checked-in example: `parameters/dev/*`)
 - Scripts: `deployment/bicep/day2-updates/scripts/*`
 
 Day 2 updates are **incremental** configuration rollouts applied after the foundation + Phase 2 stacks exist (rules/IAM/storage paths/SQL artifacts).
@@ -11,15 +11,15 @@ Day 2 updates are **incremental** configuration rollouts applied after the found
 ## Related guides
 
 - Main deployment flow: `DEPLOYMENT_GUIDE.md`
-- Private Day 2 track: `PRIVATE_DAY2_UPDATES.md`
+- Private deployment guide Day 2: `PRIVATE_DAY2_UPDATES.md`
 - How everything connects: `HOW_DEPLOYMENT_FITS_TOGETHER.md`
 
 ## 1) Set session variables
 
 ```powershell
-$WORKSPACE = "C:\Users\olanr\Desktop\blache"
+$WORKSPACE = "C:\path\to\your\repo-clone"
 $DAY2 = Join-Path $WORKSPACE "data-pipelines\deployment\bicep\day2-updates"
-$ENVIRONMENT = "dev"   # dev | prod
+$ENVIRONMENT = "<environment>"   # must match folder under day2-updates/parameters/
 if ($ENVIRONMENT -notin @("dev","prod")) { throw "ENVIRONMENT must be dev or prod." }
 $PARAMS = Join-Path $DAY2 "parameters\$ENVIRONMENT"
 
@@ -37,14 +37,14 @@ if ([string]::IsNullOrWhiteSpace($DEPLOYMENT_NAME_MAIN)) {
 }
 
 cd $SCRIPTS
-. .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN
+. .\set-vars-from-main-deployment.ps1 -DeploymentName $DEPLOYMENT_NAME_MAIN -ResolveDataRgResources
 $LOCATION = az deployment sub show --name $DEPLOYMENT_NAME_MAIN --query location -o tsv
 
-$SERVICEBUS_NAMESPACE = az servicebus namespace list -g $DATA_RG --query "[0].name" -o tsv
-$KEYVAULT_NAME = az keyvault list -g $SECURITY_RG --query "[0].name" -o tsv
 $BLOB_STORAGE_ACCOUNT = $MainBlobStorageAccountName
 $DATALAKE_STORAGE_ACCOUNT = $MainDataLakeStorageAccountName
 ```
+
+`$KEYVAULT_NAME` comes from `main.bicep` outputs. `$SERVICEBUS_NAMESPACE`, `$ADF_NAME`, `$ADF_RG`, and `$FUNCTION_APP_NAMES` are set when you use **`-ResolveDataRgResources`** and Phase 2 resources exist in `$DATA_RG`.
 
 ## 2) Service Bus SQL rule updates
 
@@ -158,13 +158,10 @@ cd "$DAY2\scripts"
 
 ## 6) ADF IAM updates (system-assigned identity)
 
-Resolve ADF factory name and assign required roles on Storage, Key Vault, and Service Bus:
+Confirm Phase 2 deployed the factory, then ensure `$ADF_NAME` is set (re-run `set-vars-from-main-deployment.ps1` with **`-ResolveDataRgResources`** if needed). Assign required roles on Storage, Key Vault, and Service Bus:
 
 ```powershell
-$ADF_RG = $DATA_RG
-$ADF_NAME = az datafactory list -g $ADF_RG --query "[0].name" -o tsv
-if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "Could not resolve ADF factory in $ADF_RG." }
-
+if ([string]::IsNullOrWhiteSpace($ADF_NAME)) { throw "ADF_NAME is empty. Deploy Phase 2 and re-run set-vars-from-main-deployment.ps1 -ResolveDataRgResources." }
 az deployment sub create `
   --name "day2-$ENVIRONMENT-adf-iam-$(Get-Date -Format 'yyyyMMdd-HHmmss')" `
   --location $LOCATION `

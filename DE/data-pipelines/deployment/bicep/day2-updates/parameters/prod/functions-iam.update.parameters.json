@@ -5,54 +5,54 @@
     "functionApps": {
       "value": [
         {
-          "name": "payswitch-creditscore-prod-schema-mapping-func",
+          "name": "OVERRIDE-org-project-prod-schema-mapping-func",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-creditscore-prod-training-ingestion-func",
+          "name": "OVERRIDE-org-project-prod-training-ingestion-func",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-creditscore-prod-transformation-func",
+          "name": "OVERRIDE-org-project-prod-transformation-func",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-creditscore-prod-adf-trigger-func",
+          "name": "OVERRIDE-org-project-prod-adf-trigger-func",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-creditscore-prod-file-checksum-func",
+          "name": "OVERRIDE-org-project-prod-file-checksum-func",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-credit-risk",
+          "name": "OVERRIDE-org-project-cs-credit-risk",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-customer-service",
+          "name": "OVERRIDE-org-project-cs-customer-service",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-fraud-detection",
+          "name": "OVERRIDE-org-project-cs-fraud-detection",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-income-verification",
+          "name": "OVERRIDE-org-project-cs-income-verification",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-loan-amount",
+          "name": "OVERRIDE-org-project-cs-loan-amount",
           "resourceGroupName": ""
         },
         {
-          "name": "payswitch-cs-orchestrator",
+          "name": "OVERRIDE-org-project-cs-orchestrator",
           "resourceGroupName": ""
         }
       ]
     },
     "excludedFunctionAppNames": {
       "value": [
-        "payswitch-creditscore-prod-file-checksum-func"
+        "OVERRIDE-org-project-prod-file-checksum-func"
       ]
     },
     "blobStorageAccountName": {

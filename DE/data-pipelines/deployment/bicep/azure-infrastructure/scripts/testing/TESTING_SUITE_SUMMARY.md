@@ -1,5 +1,7 @@
 # Infrastructure Testing Suite - Summary
 
+`cd` examples use paths from the **repository root** (folder that contains `data-pipelines/`).
+
 ## ✅ What Was Created
 
 A comprehensive test script suite for validating Azure infrastructure deployments before major development work begins.
@@ -43,7 +45,7 @@ A comprehensive test script suite for validating Azure infrastructure deployment
 
 ✅ **Phase-Specific** - Only tests resources deployed in that phase  
 ✅ **Functional Tests** - Tests actual connectivity, not just existence  
-✅ **Naming Compatible** - Works with `blache-dev` naming convention  
+✅ **Naming compatible** — Prefix is `<org>-<project>-<environment>`; pass explicitly or set `ORG_NAME` / `PROJECT_NAME` / `NAMING_PREFIX`.  
 ✅ **Automated Workflow** - Deploy → Test → Teardown in one command  
 ✅ **Comprehensive** - 65+ tests across all phases  
 
@@ -52,29 +54,29 @@ A comprehensive test script suite for validating Azure infrastructure deployment
 ### Test Single Phase
 
 ```bash
-cd credit-scoring/azure-infrastructure/scripts/testing
+cd data-pipelines/deployment/bicep/azure-infrastructure/scripts/testing
 
 # Make scripts executable (Linux/WSL)
 chmod +x *.sh
 
 # Test Phase 0
-./test-phase-0.sh dev blache-dev
+./test-phase-0.sh '<environment>' '<org>-<project>-<environment>'
 ```
 
 ### Deploy → Test → Teardown
 
 ```bash
 # Deploy Phase 0, test it, then tear it down
-./test-and-teardown.sh dev 0 blache-dev yes
+./test-and-teardown.sh '<environment>' 0 '<org>-<project>-<environment>' yes
 
 # Deploy Phase 1, test it, keep resources
-./test-and-teardown.sh dev 1 blache-dev no
+./test-and-teardown.sh '<environment>' 1 '<org>-<project>-<environment>' no
 ```
 
 ### Test All Phases
 
 ```bash
-./test-all-phases.sh dev blache-dev
+./test-all-phases.sh '<environment>' '<org>-<project>-<environment>'
 ```
 
 ## 📊 Test Coverage
@@ -101,13 +103,13 @@ The `test-and-teardown.sh` script automatically orchestrates the full workflow.
 
 1. **Make scripts executable** (on Linux/WSL):
    ```bash
-   cd credit-scoring/azure-infrastructure/scripts/testing
+   cd data-pipelines/deployment/bicep/azure-infrastructure/scripts/testing
    chmod +x *.sh
    ```
 
 2. **Test Phase 0 first:**
    ```bash
-   ./test-and-teardown.sh dev 0 blache-dev yes
+   ./test-and-teardown.sh '<environment>' 0 '<org>-<project>-<environment>' yes
    ```
 
 3. **Review test results** and fix any failures

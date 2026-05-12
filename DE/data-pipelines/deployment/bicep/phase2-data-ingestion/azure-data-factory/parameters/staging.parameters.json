@@ -1,49 +1,49 @@
 {
-    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-    "contentVersion":  "1.0.0.0",
-    "parameters":  {
-                       "location":  {
-                                        "value":  "eastus2"
-                                    },
-                       "namingPrefix":  {
-                                            "value":  "blache-cdtscr-staging"
-                                        },
-                       "deploymentEnvironment":  {
-                                                     "value":  "staging"
-                                                 },
-                       "dataLakeStorageAccountName":  {
-                                                          "value":  "REPLACE_STAGING_DATALAKE"
-                                                      },
-                       "keyVaultName":  {
-                                            "value":  "REPLACE_STAGING_KEYVAULT"
-                                        },
-                       "serviceBusNamespaceName":  {
-                                                       "value":  "REPLACE_STAGING_SERVICEBUS"
-                                                   },
-                       "sourceBlobStorageAccountName":  {
-                                                            "value":  "REPLACE_STAGING_SOURCE_STORAGE"
-                                                        },
-                       "metadataPostgresServerFqdn":  {
-                                                          "value":  "REPLACE_STAGING_POSTGRES_FQDN"
-                                                      },
-                       "metadataPostgresDatabaseName":  {
-                                                            "value":  "REPLACE_STAGING_POSTGRES_DATABASE"
-                                                        },
-                       "metadataPostgresUsername":  {
-                                                        "value":  "REPLACE_STAGING_POSTGRES_USERNAME"
-                                                    },
-                       "metadataPostgresPasswordSecretName":  {
-                                                                  "value":  "postgres-admin-password"
-                                                              },
-                       "privateNetworkMode":  {
-                                                  "value":  true
-                                              },
-                       "tags":  {
-                                    "value":  {
-                                                  "Environment":  "staging",
-                                                  "ManagedBy":  "Bicep",
-                                                  "Project":  "Credit-Scoring"
-                                              }
-                                }
-                   }
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "value": "eastus2"
+        },
+        "namingPrefix": {
+            "value": "OVERRIDE-org-project-staging"
+        },
+        "deploymentEnvironment": {
+            "value": "staging"
+        },
+        "dataLakeStorageAccountName": {
+            "value": "REPLACE_STAGING_DATALAKE"
+        },
+        "keyVaultName": {
+            "value": "REPLACE_STAGING_KEYVAULT"
+        },
+        "serviceBusNamespaceName": {
+            "value": "REPLACE_STAGING_SERVICEBUS"
+        },
+        "sourceBlobStorageAccountName": {
+            "value": "REPLACE_STAGING_SOURCE_STORAGE"
+        },
+        "metadataPostgresServerFqdn": {
+            "value": "REPLACE_STAGING_POSTGRES_FQDN"
+        },
+        "metadataPostgresDatabaseName": {
+            "value": "REPLACE_STAGING_POSTGRES_DATABASE"
+        },
+        "metadataPostgresUsername": {
+            "value": "REPLACE_STAGING_POSTGRES_USERNAME"
+        },
+        "metadataPostgresPasswordSecretName": {
+            "value": "postgres-admin-password"
+        },
+        "privateNetworkMode": {
+            "value": true
+        },
+        "tags": {
+            "value": {
+                "Environment": "staging",
+                "ManagedBy": "Bicep",
+                "Project": "Credit-Scoring"
+            }
+        }
+    }
 }

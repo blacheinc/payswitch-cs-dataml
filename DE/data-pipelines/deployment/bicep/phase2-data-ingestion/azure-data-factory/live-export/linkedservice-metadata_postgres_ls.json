@@ -33,7 +33,7 @@
                                     },
                        "port":  "5432",
                        "readBufferSize":  null,
-                       "server":  "blache-cdtscr-dev-postgres-y27jgavel2x32.postgres.database.azure.com",
+                       "server":  "REPLACE_POSTGRES_SERVER_NAME.postgres.database.azure.com",
                        "servicePrincipalCredentialType":  null,
                        "servicePrincipalEmbeddedCert":  null,
                        "servicePrincipalEmbeddedCertPassword":  null,

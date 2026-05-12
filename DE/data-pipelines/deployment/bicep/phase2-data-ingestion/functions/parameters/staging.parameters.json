@@ -1,34 +1,37 @@
 {
-    "$schema":  "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
-    "contentVersion":  "1.0.0.0",
-    "parameters":  {
-                       "location":  {
-                                        "value":  "eastus2"
-                                    },
-                       "namingPrefix":  {
-                                            "value":  "blache-cdtscr-staging"
-                                        },
-                       "functionsSubnetId":  {
-                                                 "value":  "REPLACE_STAGING_FUNCTIONS_SUBNET_ID"
-                                             },
-                       "privateEndpointsSubnetId":  {
-                                                        "value":  "REPLACE_STAGING_PRIVATE_ENDPOINT_SUBNET_ID"
-                                                    },
-                       "functionsStorageAccountName":  {
-                                                           "value":  "REPLACE_STAGING_FUNCTIONS_STORAGE"
-                                                       },
-                       "privateNetworkMode":  {
-                                                  "value":  true
-                                              },
-                       "premiumPlanSku":  {
-                                              "value":  "EP1"
-                                          },
-                       "tags":  {
-                                    "value":  {
-                                                  "Environment":  "staging",
-                                                  "ManagedBy":  "Bicep",
-                                                  "Project":  "Credit-Scoring"
-                                              }
-                                }
-                   }
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastus2"
+    },
+    "namingPrefix": {
+      "value": "OVERRIDE-org-project-staging"
+    },
+    "functionsSubnetId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-staging-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-staging-vnet/subnets/functions-subnet"
+    },
+    "privateEndpointsSubnetId": {
+      "value": "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/OVERRIDE-org-project-staging-network-rg/providers/Microsoft.Network/virtualNetworks/OVERRIDE-org-project-staging-vnet/subnets/private-endpoints-subnet"
+    },
+    "functionsStorageAccountName": {
+      "value": "REPLACE_FUNCTIONS_RUNTIME_STORAGE_ACCOUNT_NAME"
+    },
+    "privateNetworkMode": {
+      "value": true
+    },
+    "premiumPlanSku": {
+      "value": "EP1"
+    },
+    "planTier": {
+      "value": "ElasticPremium"
+    },
+    "tags": {
+      "value": {
+        "Environment": "staging",
+        "ManagedBy": "Bicep",
+        "Project": "changeme-project-label"
+      }
+    }
+  }
 }

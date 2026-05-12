@@ -5,11 +5,11 @@ param(
     [string]$SubscriptionId = "",
     # After main.bicep: pass the same name used in az deployment sub create --name (recommended)
     [string]$SubscriptionDeploymentName = "",
-    # Overrides when main uses payswitch-* (or any) naming instead of default blache-cdtscr-* 
     [string]$DataResourceGroup = "",
     [string]$SecurityResourceGroup = "",
     [string]$NetworkResourceGroup = "",
-    [string]$NamingPrefix = ""
+    [string]$NamingPrefix = "",
+    [string]$MainParametersPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -42,6 +42,24 @@ function Get-FirstNameOrEmpty {
     $value = az resource list --query $query -o tsv
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($value)) { return "" }
     return ($value -split "`n")[0].Trim()
+}
+
+# Key Vault data-plane calls fail when the vault firewall blocks this client (e.g. "not authorized and caller is not a trusted service").
+# With $ErrorActionPreference = 'Stop', native stderr from `az` would otherwise terminate the script.
+function Get-KeyVaultSecretTextOptional {
+    param(
+        [Parameter(Mandatory = $true)][string]$VaultName,
+        [Parameter(Mandatory = $true)][string]$SecretName
+    )
+    $prevEa = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = 'SilentlyContinue'
+        $raw = az keyvault secret show --vault-name $VaultName --name $SecretName --query value -o tsv 2>$null
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($raw)) { return "" }
+        return $raw.Trim()
+    } finally {
+        $ErrorActionPreference = $prevEa
+    }
 }
 
 function Set-ParamValue {
@@ -93,6 +111,7 @@ $networkRg = ""
 $namingPrefixResolved = ""
 $sourceStorage = ""
 $dataLakeStorage = ""
+$functionsDedicatedStorage = ""
 $serviceBus = ""
 $redis = ""
 $postgres = ""
@@ -110,6 +129,7 @@ if (-not [string]::IsNullOrWhiteSpace($SubscriptionDeploymentName)) {
     if ([string]::IsNullOrWhiteSpace($sourceStorage)) {
         $sourceStorage = Get-ArmOutputValue -OutputsRoot $outRoot -Key "storageAccountName"
     }
+    $functionsDedicatedStorage = Get-ArmOutputValue -OutputsRoot $outRoot -Key "functionsStorageAccountName"
     $dataLakeStorage = Get-ArmOutputValue -OutputsRoot $outRoot -Key "dataLakeStorageAccountName"
     $postgresFqdn = Get-ArmOutputValue -OutputsRoot $outRoot -Key "postgresServerFqdn"
     $postgres = Get-ArmOutputValue -OutputsRoot $outRoot -Key "postgresServerName"
@@ -126,14 +146,31 @@ if (-not [string]::IsNullOrWhiteSpace($SubscriptionDeploymentName)) {
     }
 } else {
     if ([string]::IsNullOrWhiteSpace($NamingPrefix)) {
-        $NamingPrefix = "blache-cdtscr-$Environment"
+        $paramPath = $MainParametersPath
+        if ([string]::IsNullOrWhiteSpace($paramPath)) {
+            $paramPath = Join-Path $PSScriptRoot "..\bicep-templates\main.parameters.json"
+        }
+        if (-not (Test-Path $paramPath)) {
+            throw "NamingPrefix is required when SubscriptionDeploymentName is not set, or pass -MainParametersPath to a main.*.parameters.json (missing: $paramPath)."
+        }
+        $mainParams = Get-Content -Path $paramPath -Raw | ConvertFrom-Json
+        $on = [string]$mainParams.parameters.orgName.value
+        $pn = [string]$mainParams.parameters.projectName.value
+        if ([string]::IsNullOrWhiteSpace($on) -or [string]::IsNullOrWhiteSpace($pn)) {
+            throw "main.parameters.json must define orgName and projectName, or pass -NamingPrefix explicitly."
+        }
+        $NamingPrefix = "$on-$pn-$Environment"
     }
     $namingPrefixResolved = $NamingPrefix
     $dataRg = if ([string]::IsNullOrWhiteSpace($DataResourceGroup)) { "$NamingPrefix-data-rg" } else { $DataResourceGroup }
     $securityRg = if ([string]::IsNullOrWhiteSpace($SecurityResourceGroup)) { "$NamingPrefix-security-rg" } else { $SecurityResourceGroup }
     $networkRg = if ([string]::IsNullOrWhiteSpace($NetworkResourceGroup)) { "$NamingPrefix-network-rg" } else { $NetworkResourceGroup }
 
-    $sourceStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && !contains(name, 'dl')].name"
+    $sourceStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && !contains(name, 'dl') && !contains(name, 'fn')].name"
+    $functionsDedicatedStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && tags.Purpose=='functions-runtime'].name"
+    if ([string]::IsNullOrWhiteSpace($functionsDedicatedStorage)) {
+        $functionsDedicatedStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && contains(name, 'fn')].name"
+    }
     $dataLakeStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && contains(name, 'dl')].name"
     $serviceBus = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.ServiceBus/namespaces'].name"
     $redis = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Cache/Redis'].name"
@@ -161,7 +198,13 @@ if (-not [string]::IsNullOrWhiteSpace($dataRg)) {
         Write-Host "Derived namingPrefix from data RG name: $namingPrefixResolved" -ForegroundColor DarkYellow
     }
     if ([string]::IsNullOrWhiteSpace($sourceStorage)) {
-        $sourceStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && !contains(name, 'dl')].name"
+        $sourceStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && !contains(name, 'dl') && !contains(name, 'fn')].name"
+    }
+    if ([string]::IsNullOrWhiteSpace($functionsDedicatedStorage)) {
+        $functionsDedicatedStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && tags.Purpose=='functions-runtime'].name"
+        if ([string]::IsNullOrWhiteSpace($functionsDedicatedStorage)) {
+            $functionsDedicatedStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && contains(name, 'fn')].name"
+        }
     }
     if ([string]::IsNullOrWhiteSpace($dataLakeStorage)) {
         $dataLakeStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && contains(name, 'dl')].name"
@@ -184,13 +227,16 @@ if ([string]::IsNullOrWhiteSpace($postgresFqdn) -and -not [string]::IsNullOrWhit
 }
 
 if (-not [string]::IsNullOrWhiteSpace($keyVault)) {
-    $kvDb = az keyvault secret show --vault-name $keyVault --name "PostgreSQLDatabase" --query value -o tsv 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($kvDb)) {
-        $postgresDbName = $kvDb.Trim()
+    $kvDb = Get-KeyVaultSecretTextOptional -VaultName $keyVault -SecretName "PostgreSQLDatabase"
+    if (-not [string]::IsNullOrWhiteSpace($kvDb)) {
+        $postgresDbName = $kvDb
     }
-    $kvUser = az keyvault secret show --vault-name $keyVault --name "PostgreSQLAdminUsername" --query value -o tsv 2>$null
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($kvUser)) {
-        $postgresAdminUser = $kvUser.Trim()
+    $kvUser = Get-KeyVaultSecretTextOptional -VaultName $keyVault -SecretName "PostgreSQLAdminUsername"
+    if (-not [string]::IsNullOrWhiteSpace($kvUser)) {
+        $postgresAdminUser = $kvUser
+    }
+    if ([string]::IsNullOrWhiteSpace($kvDb) -and [string]::IsNullOrWhiteSpace($kvUser)) {
+        Write-Warning "Key Vault data-plane read failed or secrets missing for vault '$keyVault' (e.g. client IP not allowed by vault firewall, or secrets not created). PostgreSQL name fields in parameters may stay empty; run from an allowed network or set values manually. See: https://learn.microsoft.com/azure/key-vault/general/network-security"
     }
 }
 
@@ -201,9 +247,14 @@ if (-not [string]::IsNullOrWhiteSpace($vnet)) {
     $privateEndpointsSubnetId = "$vnet/subnets/private-endpoints-subnet"
 }
 
-$functionsStorage = $sourceStorage
+# Phase 2 Functions templates expect the dedicated Functions runtime storage account from main.bicep (data-services).
+$functionsStorage = $functionsDedicatedStorage
 if ([string]::IsNullOrWhiteSpace($functionsStorage)) {
-    $functionsStorage = Get-FirstNameOrEmpty "[?type=='Microsoft.Storage/storageAccounts' && contains(name, 'function')].name"
+    $functionsStorage = Get-FirstNameOrEmpty "[?resourceGroup=='$dataRg' && type=='Microsoft.Storage/storageAccounts' && tags.Purpose=='functions-runtime'].name"
+}
+if ([string]::IsNullOrWhiteSpace($functionsStorage)) {
+    $functionsStorage = $sourceStorage
+    Write-Warning "functionsStorageAccountName ARM output missing; falling back to blob storage account for Functions parameters. Redeploy main.bicep with updated data-services for a dedicated Functions storage account."
 }
 
 # Service Bus is created in Phase 2 — hydrate discovers it after deploy; until then UPDATE skips empty and placeholders remain
@@ -217,6 +268,7 @@ Write-Host "  dataRg: $dataRg"
 Write-Host "  securityRg: $securityRg"
 Write-Host "  networkRg: $networkRg"
 Write-Host "  blob storage (backend / sourceBlob): $sourceStorage"
+Write-Host "  functions runtime storage (dedicated): $functionsStorage"
 Write-Host "  data lake (ADLS Gen2): $dataLakeStorage"
 Write-Host "  serviceBus: $serviceBus"
 Write-Host "  redis: $redis"
@@ -273,6 +325,12 @@ Update-ParamFile -path (Join-Path $phase2 "functions\parameters\$Environment.par
     privateEndpointsSubnetId      = $privateEndpointsSubnetId
     functionsStorageAccountName = $functionsStorage
     privateNetworkMode          = $true
+}
+
+Update-ParamFile -path (Join-Path $phase2 "functions\parameters\$Environment.consumption.parameters.json") -updates @{
+    location                    = $location
+    namingPrefix                = $namingPrefixResolved
+    functionsStorageAccountName = $functionsStorage
 }
 
 Write-Host "Parameter hydration complete for environment: $Environment" -ForegroundColor Green

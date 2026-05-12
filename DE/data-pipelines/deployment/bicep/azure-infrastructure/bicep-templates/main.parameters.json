@@ -6,29 +6,29 @@
       "value": "dev"
     },
     "primaryLocation": {
-      "value": "eastus"
+      "value": "eastus2"
     },
     "secondaryLocation": {
       "value": "westus2"
     },
     "projectName": {
-      "value": "creditscore"
+      "value": "YOUR_PROJECT_SLUG"
     },
     "orgName": {
-      "value": "payswitch"
+      "value": "YOUR_ORG_SLUG"
     },
     "tags": {
       "value": {
         "Project": "Credit-Scoring-Agentic-AI",
         "Environment": "dev",
         "ManagedBy": "Bicep",
-        "Owner": "PaySwitch",
+        "Owner": "YOUR_ORG_SLUG",
         "CostCenter": "FinTech-Operations",
-        "DeployedBy": "Blache-Ltd"
+        "DeployedBy": "Bicep"
       }
     },
     "adminEmail": {
-      "value": "ops@payswitch.com.gh"
+      "value": "admin@example.com"
     },
     "enableAdvancedSecurity": {
       "value": true
@@ -38,6 +38,9 @@
     },
     "enableOpenAI": {
       "value": true
+    },
+    "privateNetworkMode": {
+      "value": false
     }
   }
 }

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.39.26.7824",
-      "templateHash": "12825774630672686571"
+      "version": "0.42.1.51946",
+      "templateHash": "10500579046868991582"
     }
   },
   "parameters": {
@@ -112,7 +112,8 @@
     "postgresPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
     "redisPublicNetworkAccess": "[if(variables('isProduction'), 'Disabled', 'Enabled')]",
     "storageDefaultAction": "[if(variables('isProduction'), 'Deny', 'Allow')]",
-    "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]"
+    "storageVirtualNetworkRules": "[if(empty(parameters('mlSubnetId')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow')), createArray(createObject('id', parameters('subnetId'), 'action', 'Allow'), createObject('id', parameters('mlSubnetId'), 'action', 'Allow')))]",
+    "functionsStorageAccountName": "[format('{0}fn{1}', variables('shortPrefix'), substring(uniqueString(resourceGroup().id, 'functions-runtime'), 0, 13))]"
   },
   "resources": [
     {
@@ -198,6 +199,39 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
       ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2023-01-01",
+      "name": "[variables('functionsStorageAccountName')]",
+      "location": "[parameters('location')]",
+      "tags": "[union(parameters('tags'), createObject('Purpose', 'functions-runtime'))]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "StorageV2",
+      "properties": {
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAcls": {
+          "bypass": "AzureServices",
+          "defaultAction": "[variables('storageDefaultAction')]",
+          "virtualNetworkRules": "[if(variables('isProduction'), variables('storageVirtualNetworkRules'), createArray())]"
+        },
+        "encryption": {
+          "services": {
+            "blob": {
+              "enabled": true
+            },
+            "file": {
+              "enabled": true
+            }
+          },
+          "keySource": "Microsoft.Storage"
+        }
+      }
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
@@ -405,6 +439,14 @@
     "storageAccountName": {
       "type": "string",
       "value": "[variables('storageAccountName')]"
+    },
+    "functionsStorageAccountId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('functionsStorageAccountName'))]"
+    },
+    "functionsStorageAccountName": {
+      "type": "string",
+      "value": "[variables('functionsStorageAccountName')]"
     },
     "dataLakeId": {
       "type": "string",
